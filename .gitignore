@@ -1,0 +1,36 @@
+# macOS
+.DS_Store
+
+# Python / Django
+venv/
+.venv/
+__pycache__/
+*.py[cod]
+*.pyo
+*.so
+*.egg-info/
+db.sqlite3
+.env
+.env.* 
+media/
+staticfiles/
+
+# Flutter / Dart
+.dart_tool/
+.packages
+.pub-cache/
+.flutter-plugins
+.flutter-plugins-dependencies
+.buildlog/
+build/
+coverage/
+linux/flutter/ephemeral/
+macos/Flutter/ephemeral/
+windows/flutter/ephemeral/
+ios/Flutter/ephemeral/
+android/.gradle/
+android/app/release/
+
+# IDE
+.idea/
+.vscode/
