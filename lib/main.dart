@@ -17,8 +17,10 @@ import 'screens/signup_page.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Check for existing JWT access token
+  // ✅ Declare storage properly before use
   final storage = FlutterSecureStorage();
+
+  // ✅ Check for existing JWT access token
   final token = await storage.read(key: 'access');
   final initialRoute = token != null ? '/' : '/login';
 

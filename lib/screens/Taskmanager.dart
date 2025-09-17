@@ -1,195 +1,343 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
-class TaskManagerToday extends StatelessWidget {
-  final List<Map<String, String>> tasks = [
-    {'title': 'Check Crop progression', 'status': 'In Progress'},
-    {'title': 'Prune Apple Trees Before Rain', 'status': 'Completed'},
-    {'title': 'Update Garden Map with New Beds', 'status': 'Not started'},
-  ];
+import '../services/event_service.dart'; // uses EventService + EventItem
 
-  final Map<String, Color> statusColors = {
-    'In Progress': Colors.amber,
-    'Completed': Colors.green,
-    'Not started': Colors.red,
-  };
+class TaskManagerPage extends StatefulWidget {
+  const TaskManagerPage({super.key});
 
+  @override
+  State<TaskManagerPage> createState() => _TaskManagerPageState();
+}
+
+class _TaskManagerPageState extends State<TaskManagerPage> {
+  final _svc = EventService();
+
+  // day strip
+  DateTime _anchor = _today(); // first chip = today
+  int _selectedOffset = 0;      // 0..6 within week strip
+
+  // tab
+  bool _showToday = true;
+
+  // cache
+  bool _loading = false;
+  List<EventItem> _items = [];
+
+  static DateTime _today() {
+    final n = DateTime.now();
+    return DateTime(n.year, n.month, n.day);
+  }
+
+  DateTime get _selectedDay => _anchor.add(Duration(days: _selectedOffset));
+
+  @override
+  void initState() {
+    super.initState();
+    _loadForSelectedDay();
+  }
+
+  Future<void> _loadForSelectedDay() async {
+    setState(() => _loading = true);
+    final day = _selectedDay;
+    final start = DateTime(day.year, day.month, day.day);
+    final end = start.add(const Duration(days: 1));
+
+    final list = await _svc.listEvents(start: start, end: end);
+    setState(() {
+      _items = list..sort((a, b) => a.start.compareTo(b.start));
+      _loading = false;
+    });
+  }
+
+  Future<void> _loadUpcoming() async {
+    setState(() => _loading = true);
+    final start = _today();
+    final end = start.add(const Duration(days: 14));
+    final list = await _svc.listEvents(start: start, end: end);
+    setState(() {
+      _items = list..sort((a, b) => a.start.compareTo(b.start));
+      _loading = false;
+    });
+  }
+
+  Future<void> _toggleDone(EventItem e, bool done) async {
+    // optimistic UI
+    final old = e.status;
+    e.status = done ? 'completed' : 'not_started';
+    setState(() {});
+
+    final ok = await _svc.updateEventStatus(e.id, e.status!);
+    if (!ok) {
+      // revert on failure
+      e.status = old;
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to update status')),
+        );
+      }
+      setState(() {});
+    }
+  }
+
+  // UI ------------------------------------------------------------------------
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Task Manager'),
         actions: const [
-          Icon(Icons.notifications_none),
-          SizedBox(width: 10),
+          Icon(Icons.add),
+          SizedBox(width: 12),
           Icon(Icons.account_circle),
-          SizedBox(width: 16),
+          SizedBox(width: 12),
         ],
       ),
       body: Column(
         children: [
-          _buildDateSelector(),
-          ToggleButtons(
-            borderRadius: BorderRadius.circular(10),
-            isSelected: [true, false],
-            children: const [Text('Today'), Text('Upcoming')],
-            onPressed: (_) {},
+          // date chips (week strip)
+          if (_showToday) _DayStrip(
+            anchor: _anchor,
+            selectedOffset: _selectedOffset,
+            onSelect: (i) {
+              setState(() => _selectedOffset = i);
+              _loadForSelectedDay();
+            },
           ),
+
+          // tabs
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            child: Row(
+              children: [
+                _tab('Today', _showToday, () {
+                  setState(() => _showToday = true);
+                  _loadForSelectedDay();
+                }),
+                const SizedBox(width: 8),
+                _tab('Upcoming', !_showToday, () {
+                  setState(() => _showToday = false);
+                  _loadUpcoming();
+                }),
+              ],
+            ),
+          ),
+
           Expanded(
-            child: ListView.builder(
-              itemCount: tasks.length,
-              itemBuilder: (context, index) {
-                var task = tasks[index];
-                return Card(
-                  margin: const EdgeInsets.all(10),
-                  child: ListTile(
-                    title: Text(task['title']!),
-                    subtitle: const Text("10:00 – 12:30 am"),
-                    trailing: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: statusColors[task['status']]!.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Text(
-                        task['status']!,
-                        style: TextStyle(
-                          color: statusColors[task['status']],
-                          fontWeight: FontWeight.bold,
+            child: _loading
+                ? const Center(child: CircularProgressIndicator())
+                : _items.isEmpty
+                    ? Center(
+                        child: Text(
+                          _showToday
+                              ? 'No tasks for ${DateFormat('EEE, d MMM').format(_selectedDay)}'
+                              : 'No upcoming tasks',
+                        ),
+                      )
+                    : ListView.builder(
+                        itemCount: _items.length,
+                        itemBuilder: (context, i) => _TaskCard(
+                          item: _items[i],
+                          onToggle: (v) => _toggleDone(_items[i], v),
                         ),
                       ),
-                    ),
-                  ),
-                );
-              },
-            ),
           ),
         ],
       ),
-      bottomNavigationBar: _buildBottomNavBar(0),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: 2,
+        type: BottomNavigationBarType.fixed,
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: ''),
+          BottomNavigationBarItem(icon: Icon(Icons.map), label: ''),
+          BottomNavigationBarItem(icon: Icon(Icons.task_alt), label: ''),
+          BottomNavigationBarItem(icon: Icon(Icons.settings), label: ''),
+          BottomNavigationBarItem(icon: Icon(Icons.calendar_today), label: ''),
+        ],
+      ),
     );
   }
 
-  Widget _buildDateSelector() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceAround,
-      children:
-          ['Thu 26', 'Fri 27', 'Sat 28', 'Sun 29', 'Mon 30', 'Tue 31', 'Wed 01']
-              .map((date) => Column(
-                    children: [
-                      Text(date),
-                      if (date.contains("Mon 30"))
-                        Container(
-                          margin: const EdgeInsets.only(top: 4),
-                          width: 30,
-                          height: 4,
-                          color: Colors.green,
-                        ),
-                    ],
-                  ))
-              .toList(),
-    );
-  }
-
-  Widget _buildBottomNavBar(int selectedIndex) {
-    return BottomNavigationBar(
-      currentIndex: selectedIndex,
-      type: BottomNavigationBarType.fixed,
-      items: const [
-        BottomNavigationBarItem(icon: Icon(Icons.home), label: ''),
-        BottomNavigationBarItem(icon: Icon(Icons.map), label: ''),
-        BottomNavigationBarItem(icon: Icon(Icons.search), label: ''),
-        BottomNavigationBarItem(icon: Icon(Icons.task_alt), label: ''),
-        BottomNavigationBarItem(icon: Icon(Icons.calendar_today), label: ''),
-      ],
+  Widget _tab(String label, bool active, VoidCallback onTap) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          height: 40,
+          decoration: BoxDecoration(
+            color: active ? Colors.green : const Color(0xFFE7E7E7),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          alignment: Alignment.center,
+          child: Text(
+            label,
+            style: TextStyle(
+              color: active ? Colors.white : Colors.black87,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
 
-class TaskManagerUpcoming extends StatelessWidget {
-  final Map<String, List<Map<String, String>>> upcomingTasks = {
-    'Wed 1st May': [
-      {
-        'title': 'Irrigation Setup for New Crop Area',
-        'time': '12:00 – 13:30 pm'
-      },
-      {
-        'title': 'Apply Fertilizer to Orchard Zone B',
-        'time': '09:00 – 11:00 am'
-      },
-      {'title': 'Harvest Tomatoes', 'time': '12:00 – 13:30 pm'},
-    ],
-    'Fri 3rd May': [
-      {'title': 'Course UI Design', 'time': '15:00 – 16:00 pm'},
-      {'title': 'Log Planting Dates for New Herbs', 'time': '16:00 – 17:00 pm'},
-    ],
-  };
+// --- Day strip ----------------------------------------------------------------
+
+class _DayStrip extends StatelessWidget {
+  const _DayStrip({
+    required this.anchor,
+    required this.selectedOffset,
+    required this.onSelect,
+  });
+
+  final DateTime anchor;
+  final int selectedOffset;
+  final ValueChanged<int> onSelect;
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Task Manager'),
-        actions: const [
-          Icon(Icons.notifications_none),
-          SizedBox(width: 10),
-          Icon(Icons.account_circle),
-          SizedBox(width: 16),
-        ],
-      ),
-      body: Column(
-        children: [
-          ToggleButtons(
-            borderRadius: BorderRadius.circular(10),
-            isSelected: [false, true],
-            children: const [Text('Today'), Text('Upcoming')],
-            onPressed: (_) {},
-          ),
-          Expanded(
-            child: ListView(
-              children: upcomingTasks.entries.map((entry) {
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      width: double.infinity,
-                      color: Colors.green.shade800,
-                      padding: const EdgeInsets.all(8),
-                      child: Text(entry.key,
-                          style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold)),
+    final days = List<DateTime>.generate(7, (i) => anchor.add(Duration(days: i)));
+    return SizedBox(
+      height: 86,
+      child: ListView.separated(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        scrollDirection: Axis.horizontal,
+        itemCount: days.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 10),
+        itemBuilder: (_, i) {
+          final d = days[i];
+          final sel = i == selectedOffset;
+          return GestureDetector(
+            onTap: () => onSelect(i),
+            child: Container(
+              width: 72,
+              decoration: BoxDecoration(
+                color: sel ? Colors.green.shade700 : Colors.green.shade100,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(DateFormat('EEE').format(d),
+                      style: TextStyle(
+                        color: sel ? Colors.white : Colors.black87,
+                        fontWeight: FontWeight.w600,
+                      )),
+                  const SizedBox(height: 6),
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: sel ? Colors.green : Colors.white,
+                      shape: BoxShape.circle,
                     ),
-                    ...entry.value.map((task) => Card(
-                          margin: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 5),
-                          child: ListTile(
-                            title: Text(task['title']!),
-                            subtitle: Text(task['time']!),
-                          ),
-                        )),
-                  ],
-                );
-              }).toList(),
+                    alignment: Alignment.center,
+                    child: Text(
+                      '${d.day}',
+                      style: TextStyle(
+                        color: sel ? Colors.white : Colors.black87,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+          );
+        },
       ),
-      bottomNavigationBar: _buildBottomNavBar(3),
     );
   }
+}
 
-  Widget _buildBottomNavBar(int selectedIndex) {
-    return BottomNavigationBar(
-      currentIndex: selectedIndex,
-      type: BottomNavigationBarType.fixed,
-      items: const [
-        BottomNavigationBarItem(icon: Icon(Icons.home), label: ''),
-        BottomNavigationBarItem(icon: Icon(Icons.map), label: ''),
-        BottomNavigationBarItem(icon: Icon(Icons.search), label: ''),
-        BottomNavigationBarItem(icon: Icon(Icons.task_alt), label: ''),
-        BottomNavigationBarItem(icon: Icon(Icons.calendar_today), label: ''),
-      ],
+// --- Task card ----------------------------------------------------------------
+
+class _TaskCard extends StatelessWidget {
+  const _TaskCard({
+    required this.item,
+    required this.onToggle,
+  });
+
+  final EventItem item;
+  final ValueChanged<bool> onToggle;
+
+  Color _statusColor(String s) {
+    switch (s) {
+      case 'completed':
+        return Colors.green;
+      case 'in_progress':
+        return Colors.amber;
+      default:
+        return Colors.red;
+    }
+  }
+
+  String _statusLabel(String? s) {
+    switch (s) {
+      case 'completed':
+        return 'Completed';
+      case 'in_progress':
+        return 'In Progress';
+      default:
+        return 'Not started';
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final start = item.start.toLocal();
+    final end = (item.end ?? item.start).toLocal();
+    final time =
+        '${DateFormat('hh:mm a').format(start)} – ${DateFormat('hh:mm a').format(end)}';
+
+    final status = item.status ?? 'not_started';
+    final statusColor = _statusColor(status);
+
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+        child: Row(
+          children: [
+            const Icon(Icons.schedule, color: Colors.black54),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(item.title,
+                      style: const TextStyle(
+                          fontWeight: FontWeight.w700, fontSize: 16)),
+                  const SizedBox(height: 6),
+                  Text(time, style: const TextStyle(color: Colors.black54)),
+                ],
+              ),
+            ),
+            Checkbox(
+              value: status == 'completed',
+              onChanged: (v) => onToggle(v ?? false),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+            ),
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: statusColor.withOpacity(0.16),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Text(
+                _statusLabel(status),
+                style: TextStyle(
+                  color: statusColor,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

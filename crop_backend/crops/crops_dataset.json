@@ -1,0 +1,17 @@
+[
+    {
+      "name": "Orange",
+      "spacing": 2.5,
+      "harvest_time": "Winter",
+      "growth_stages": ["Seedling","Vegetative","Fruit","Harvest"],
+      "pest_notes": "Rich in Vitamin C"
+    },
+    {
+      "name": "Wheat",
+      "spacing": 0.2,
+      "harvest_time": "Spring",
+      "growth_stages": ["Germination","Tillering","Heading","Harvest"],
+      "pest_notes": "Common cereal crop"
+    }
+  ]
+  

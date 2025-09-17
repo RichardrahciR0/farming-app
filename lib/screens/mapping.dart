@@ -1,45 +1,260 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:intl/intl.dart';
+
+// ⬇️ Your existing API service
+import '../services/plot_service.dart';
+
+/// Tools shown in the floating palette
+enum DrawTool { vertex, addMarker, pan, undo }
+
+/// In-memory model for a user plot you draw locally (optional)
+class PlotMeta {
+  PlotMeta({
+    required this.polygon,
+    this.name,
+    this.spacing,
+    this.plantingDate,
+  });
+
+  final Polygon polygon;
+  String? name;
+  String? spacing;
+  DateTime? plantingDate;
+}
+
+/// Record fetched from the backend (keeps the whole payload in [props])
+class ServerPlot {
+  final int id;
+  final String type; // 'point' | 'polygon' | 'rectangle' | 'circle'
+  final Map<String, dynamic> geometry; // GeoJSON
+  final Map<String, dynamic> props; // full record (minus geometry ideally)
+  final String name;
+  final String growthStage;
+  final DateTime? plantedAt;
+
+  ServerPlot({
+    required this.id,
+    required this.type,
+    required this.geometry,
+    required this.props,
+    required this.name,
+    required this.growthStage,
+    required this.plantedAt,
+  });
+
+  static ServerPlot fromJson(Map<String, dynamic> j) {
+    // Keep the original for the details sheet
+    final mapCopy = Map<String, dynamic>.from(j);
+
+    return ServerPlot(
+      id: (j['id'] as num).toInt(),
+      type: (j['type'] ?? 'polygon') as String,
+      geometry: j['geometry'] as Map<String, dynamic>,
+      props: mapCopy,
+      name: (j['name'] ?? 'Plot').toString(),
+      growthStage: (j['growth_stage'] ?? '').toString(),
+      plantedAt: j['planted_at'] != null && (j['planted_at'] as String).isNotEmpty
+          ? DateTime.tryParse('${j['planted_at']}T00:00:00')
+          : null,
+    );
+  }
+}
 
 class MappingPage extends StatefulWidget {
+  const MappingPage({super.key});
+
   @override
-  _MappingPageState createState() => _MappingPageState();
+  State<MappingPage> createState() => _MappingPageState();
 }
 
 class _MappingPageState extends State<MappingPage> {
-  final MapController _mapController = MapController();
-  final List<Polygon> _plots = [];
-  final List<LatLng> _currentPoints = [];
+  final MapController _map = MapController();
 
-  List<bool> _layers = [true, false, false, false];
-  int _activeTool = 2;
-  int _navIndex = 1;
+  // ── Local/demo state (optional)
+  final List<PlotMeta> _localPlots = <PlotMeta>[];
+  final List<LatLng> _workingVertices = <LatLng>[];
 
-  void _addPoint(LatLng pt) {
-    if (_activeTool != 0) return;
+  // ── Server data
+  final List<ServerPlot> _serverPlots = <ServerPlot>[];
+  final List<Polygon> _serverPolygons = <Polygon>[];
+  final List<Marker> _serverMarkers = <Marker>[];
+  final List<Marker> _serverPolyTapMarkers = <Marker>[]; // invisible centroids
+
+  bool _loading = false;
+  String? _error;
+
+  // demo alerts (you can later fetch from API)
+  final List<Marker> _alerts = <Marker>[
+    Marker(
+      point: LatLng(-27.4692, 153.0238),
+      width: 36,
+      height: 36,
+      child: const Icon(Icons.warning, color: Colors.red, size: 32),
+    ),
+  ];
+
+  // ── UI state
+  DrawTool _tool = DrawTool.vertex;
+  // layer toggles: Plots | Grid | Heatmap | Alerts
+  final List<bool> _layers = [true, false, false, false];
+
+  int _bottomIndex = 1; // home, map, tasks, settings, calendar
+
+  @override
+  void initState() {
+    super.initState();
+    _loadServerPlots();
+  }
+
+  Future<void> _loadServerPlots() async {
     setState(() {
-      _currentPoints.add(pt);
-      if (_currentPoints.length == 4) {
-        _plots.add(
-          Polygon(
-            points: List.from(_currentPoints),
-            borderColor: Colors.green,
-            borderStrokeWidth: 2,
-            color: Colors.green.withOpacity(0.4),
-          ),
+      _loading = true;
+      _error = null;
+      _serverPlots.clear();
+      _serverPolygons.clear();
+      _serverMarkers.clear();
+      _serverPolyTapMarkers.clear();
+    });
+
+    try {
+      final list = await PlotService().fetchMyPlots();
+      final parsed = list.map(ServerPlot.fromJson).toList();
+
+      final polygons = <Polygon>[];
+      final markers = <Marker>[];
+      final polyTapMarkers = <Marker>[];
+
+      for (final sp in parsed) {
+        final gjType = (sp.geometry['type'] ?? '').toString();
+
+        if (gjType == 'Polygon') {
+          final coordsAny = sp.geometry['coordinates'];
+          if (coordsAny is List && coordsAny.isNotEmpty) {
+            // GeoJSON Polygon: coordinates is List<List<[lng,lat]>>
+            final ringAny = coordsAny.first;
+            if (ringAny is List && ringAny.isNotEmpty) {
+              final points = <LatLng>[];
+              for (final xy in ringAny) {
+                if (xy is List && xy.length >= 2) {
+                  final lng = (xy[0] as num).toDouble();
+                  final lat = (xy[1] as num).toDouble();
+                  points.add(LatLng(lat, lng));
+                }
+              }
+              if (points.length >= 3) {
+                polygons.add(
+                  Polygon(
+                    points: points,
+                    color: Colors.green.withOpacity(0.30),
+                    borderColor: Colors.green.shade700,
+                    borderStrokeWidth: 2,
+                    label: '${sp.name}${sp.growthStage.isNotEmpty ? ' • ${sp.growthStage}' : ''}',
+                  ),
+                );
+
+                // Add an invisible tap target at centroid to open details
+                final c = _centroid(points);
+                polyTapMarkers.add(
+                  Marker(
+                    point: c,
+                    width: 44,
+                    height: 44,
+                    child: InkWell(
+                      onTap: () => _showServerPlotDetails(sp),
+                      child: Tooltip(
+                        message:
+                            '${sp.name}${sp.growthStage.isNotEmpty ? ' • ${sp.growthStage}' : ''}\n(Tap for details)',
+                        preferBelow: false,
+                        child: const Icon(
+                          Icons.crop_square,
+                          // Mostly transparent; still leaves a small hit target
+                          color: Colors.transparent,
+                          size: 40,
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              }
+            }
+          }
+        } else if (gjType == 'Point') {
+          final coords = sp.geometry['coordinates'];
+          if (coords is List && coords.length >= 2) {
+            final lng = (coords[0] as num).toDouble();
+            final lat = (coords[1] as num).toDouble();
+            markers.add(
+              Marker(
+                point: LatLng(lat, lng),
+                width: 40,
+                height: 40,
+                child: InkWell(
+                  onTap: () => _showServerPlotDetails(sp),
+                  child: Tooltip(
+                    message:
+                        '${sp.name}${sp.growthStage.isNotEmpty ? ' • ${sp.growthStage}' : ''}\n(Tap for details)',
+                    preferBelow: false,
+                    child: const Icon(Icons.place, color: Colors.green, size: 32),
+                  ),
+                ),
+              ),
+            );
+          }
+        } else {
+          // Circles/rectangles typically stored as Polygon in GeoJSON.
+          // If your backend returns 'Circle' with center+radius, approximate to polygon here.
+        }
+      }
+
+      setState(() {
+        _serverPlots.addAll(parsed);
+        _serverPolygons.addAll(polygons);
+        _serverMarkers.addAll(markers);
+        _serverPolyTapMarkers.addAll(polyTapMarkers);
+        _loading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _loading = false;
+        _error = 'Failed to load plots: $e';
+      });
+    }
+  }
+
+  // ── Map interactions (local sketch)
+  void _onMapTap(LatLng latlng) {
+    if (_tool != DrawTool.vertex) return;
+
+    setState(() {
+      _workingVertices.add(latlng);
+      if (_workingVertices.length == 4) {
+        final polygon = Polygon(
+          points: List<LatLng>.from(_workingVertices),
+          borderColor: Colors.blueGrey,
+          borderStrokeWidth: 2,
+          color: Colors.blueGrey.withOpacity(0.30),
         );
-        _currentPoints.clear();
+        _localPlots.add(PlotMeta(polygon: polygon));
+        _workingVertices.clear();
+        _openPlotDetails(_localPlots.last);
       }
     });
   }
 
   void _undo() {
-    if (_currentPoints.isNotEmpty) {
-      setState(() => _currentPoints.removeLast());
+    if (_workingVertices.isNotEmpty) {
+      setState(() => _workingVertices.removeLast());
+      return;
+    }
+    if (_localPlots.isNotEmpty) {
+      setState(() => _localPlots.removeLast());
     }
   }
 
+  // ── Layers
   void _toggleLayer(int idx) {
     setState(() {
       for (int i = 0; i < _layers.length; i++) {
@@ -48,240 +263,430 @@ class _MappingPageState extends State<MappingPage> {
     });
   }
 
-  void _selectTool(int idx) {
-    setState(() => _activeTool = idx);
-  }
+  // ── Local add/edit (sketch)
+  Future<void> _openPlotDetails(PlotMeta plot) async {
+    final nameCtrl = TextEditingController(text: plot.name ?? '');
+    final spacingCtrl = TextEditingController(text: plot.spacing ?? '');
+    final dateCtrl = TextEditingController(
+      text: plot.plantingDate != null
+          ? DateFormat('yyyy-MM-dd').format(plot.plantingDate!)
+          : '',
+    );
 
-  void _showAddDetailsOverlay() {
-    final nameCtrl = TextEditingController();
-    final spacingCtrl = TextEditingController();
-    final dateCtrl = TextEditingController();
-
-    showModalBottomSheet(
+    await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      shape: RoundedRectangleBorder(
+      useSafeArea: true,
+      shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
-      builder: (ctx) => Padding(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(ctx).viewInsets.bottom,
-          top: 24,
-          left: 24,
-          right: 24,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text('Add Details', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-            SizedBox(height: 16),
-            TextField(
-              controller: nameCtrl,
-              decoration: InputDecoration(
-                hintText: 'Name',
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+      builder: (ctx) {
+        return Padding(
+          padding: EdgeInsets.only(
+            left: 20,
+            right: 20,
+            bottom: MediaQuery.of(ctx).viewInsets.bottom + 16,
+            top: 20,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('Add Details',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+              const SizedBox(height: 12),
+              TextField(
+                controller: nameCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Name',
+                  border: OutlineInputBorder(),
+                ),
               ),
-            ),
-            SizedBox(height: 12),
-            TextField(
-              controller: spacingCtrl,
-              decoration: InputDecoration(
-                hintText: 'Spacing',
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+              const SizedBox(height: 10),
+              TextField(
+                controller: spacingCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Spacing',
+                  border: OutlineInputBorder(),
+                ),
               ),
-            ),
-            SizedBox(height: 12),
-            TextField(
-              controller: dateCtrl,
-              readOnly: true,
-              decoration: InputDecoration(
-                hintText: 'Planting Date',
-                suffixIcon: Icon(Icons.calendar_today),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+              const SizedBox(height: 10),
+              TextField(
+                controller: dateCtrl,
+                readOnly: true,
+                decoration: const InputDecoration(
+                  labelText: 'Planting Date',
+                  suffixIcon: Icon(Icons.calendar_today),
+                  border: OutlineInputBorder(),
+                ),
+                onTap: () async {
+                  FocusScope.of(context).unfocus();
+                  final now = DateTime.now();
+                  final picked = await showDatePicker(
+                    context: context,
+                    initialDate: plot.plantingDate ?? now,
+                    firstDate: DateTime(now.year - 5),
+                    lastDate: DateTime(now.year + 5),
+                  );
+                  if (picked != null) {
+                    dateCtrl.text = DateFormat('yyyy-MM-dd').format(picked);
+                  }
+                },
               ),
-              onTap: () async {
-                FocusScope.of(context).unfocus();
-                final picked = await showDatePicker(
-                  context: context,
-                  initialDate: DateTime.now(),
-                  firstDate: DateTime(2000),
-                  lastDate: DateTime(2100),
-                );
-                if (picked != null) {
-                  dateCtrl.text = picked.toLocal().toIso8601String().split('T').first;
-                }
-              },
-            ),
-            SizedBox(height: 24),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.of(ctx).pop();
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green[700],
-                padding: EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green[700],
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      plot.name = nameCtrl.text.trim().isEmpty
+                          ? null
+                          : nameCtrl.text.trim();
+                      plot.spacing = spacingCtrl.text.trim().isEmpty
+                          ? null
+                          : spacingCtrl.text.trim();
+                      if (dateCtrl.text.trim().isNotEmpty) {
+                        plot.plantingDate =
+                            DateTime.tryParse('${dateCtrl.text}T00:00:00');
+                      } else {
+                        plot.plantingDate = null;
+                      }
+                    });
+                    Navigator.pop(ctx);
+                  },
+                  child: const Text('Save'),
+                ),
               ),
-              child: Text('Save', style: TextStyle(fontSize: 16)),
-            ),
-            SizedBox(height: 16),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _drawerItem(BuildContext context, String title, String route) {
-    return ListTile(
-      title: Text(title),
-      onTap: () {
-        Navigator.pop(context);
-        Navigator.pushNamed(context, route);
+            ],
+          ),
+        );
       },
     );
   }
+
+  // ── Server plot detail sheet (shows *everything* from Layout Planning)
+  Future<void> _showServerPlotDetails(ServerPlot sp) async {
+    final fmt = DateFormat('yyyy-MM-dd');
+    // Build display pairs from props, excluding geometry & internal keys
+    final excluded = {'geometry'};
+    final entries = <MapEntry<String, String>>[];
+
+    sp.props.forEach((k, v) {
+      if (excluded.contains(k)) return;
+
+      // Nicely format some known fields, else fallback to stringifying.
+      if (v == null) return;
+      String valStr;
+      if (k == 'planted_at' && v is String && v.isNotEmpty) {
+        final dt = DateTime.tryParse('${v}T00:00:00');
+        valStr = dt != null ? fmt.format(dt) : v.toString();
+      } else if (v is List) {
+        valStr = v.map((e) => e.toString()).join(', ');
+      } else if (v is Map) {
+        valStr = v.map((kk, vv) => MapEntry(kk, vv?.toString() ?? '')).toString();
+      } else {
+        valStr = v.toString();
+      }
+
+      // Beautify label (snake_case → Title Case)
+      final label = k
+          .replaceAll('_', ' ')
+          .split(' ')
+          .map((w) => w.isEmpty ? w : '${w[0].toUpperCase()}${w.substring(1)}')
+          .join(' ');
+
+      entries.add(MapEntry(label, valStr));
+    });
+
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) {
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Header
+              Row(
+                children: [
+                  Icon(
+                    sp.type.toLowerCase().contains('point')
+                        ? Icons.place
+                        : Icons.terrain,
+                    color: Colors.green[700],
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      sp.name.isEmpty ? 'Plot #${sp.id}' : sp.name,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  if (sp.growthStage.isNotEmpty)
+                    Container(
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.green[50],
+                        borderRadius: BorderRadius.circular(999),
+                        border: Border.all(color: Colors.green.shade200),
+                      ),
+                      child: Text(
+                        sp.growthStage,
+                        style: TextStyle(
+                          color: Colors.green[900],
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              if (sp.plantedAt != null)
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'Planted: ${fmt.format(sp.plantedAt!)}',
+                    style: const TextStyle(color: Colors.black54),
+                  ),
+                ),
+              const SizedBox(height: 8),
+
+              // Key/Value list of *all* properties (from Layout Planning)
+              Flexible(
+                child: ListView.separated(
+                  shrinkWrap: true,
+                  itemCount: entries.length,
+                  separatorBuilder: (_, __) => const Divider(height: 1),
+                  itemBuilder: (context, i) {
+                    final e = entries[i];
+                    return ListTile(
+                      dense: true,
+                      title: Text(
+                        e.key,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                        ),
+                      ),
+                      subtitle: Text(
+                        e.value.isEmpty ? '—' : e.value,
+                        style: const TextStyle(fontSize: 14),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(height: 8),
+
+              // CTA: jump to Layout Planning to edit (optional)
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  icon: const Icon(Icons.edit),
+                  label: const Text('Edit in Layout Planning'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green[700],
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                  ),
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                    // If you pass arguments to preselect this plot, add them here:
+                    Navigator.pushNamed(context, '/map', arguments: {
+                      'plotId': sp.id,
+                    });
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  // ── UI bits
+  Widget _toolFab(DrawTool tool, IconData icon) {
+    final selected = _tool == tool;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: selected ? Colors.green : Colors.white,
+        shape: BoxShape.circle,
+        border: Border.all(color: Colors.black54),
+        boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 4)],
+      ),
+      child: IconButton(
+        icon: Icon(icon, color: selected ? Colors.white : Colors.black),
+        onPressed: () {
+          if (tool == DrawTool.undo) {
+            _undo();
+          } else {
+            setState(() => _tool = tool);
+          }
+        },
+      ),
+    );
+  }
+
+  List<Polygon> get _localPolygons =>
+      _localPlots.map((p) => p.polygon).toList(growable: false);
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       drawer: Drawer(
-        child: ListView(
-          padding: EdgeInsets.zero,
-          children: [
-            DrawerHeader(
-              decoration: BoxDecoration(color: Colors.green[700]),
-              child: Center(child: Image.asset('assets/logo.png', height: 60)),
-            ),
-            _drawerItem(context, 'Dashboard', '/'),
-            _drawerItem(context, 'Account Settings', '/settings'),
-            _drawerItem(context, 'Layout Planning', '/map'),
-            _drawerItem(context, 'Task Manager', '/tasks'),
-            _drawerItem(context, 'Mapping', '/mapping'),
-            _drawerItem(context, 'Data Visualized', '/data'),
-            _drawerItem(context, 'Weather', '/weather'),
-            _drawerItem(context, 'Calendar', '/calendar'),
-            _drawerItem(context, 'Crop Database', '/cropdata'),
-          ],
-        ),
+        child: ListView(padding: EdgeInsets.zero, children: [
+          DrawerHeader(
+            decoration: BoxDecoration(color: Colors.green[700]),
+            child: const SizedBox.shrink(),
+          ),
+          _drawerItem('Dashboard', '/'),
+          _drawerItem('Layout Planning', '/map'),
+          _drawerItem('Mapping', '/mapping'),
+          _drawerItem('Task Manager', '/tasks'),
+          _drawerItem('Settings', '/settings'),
+          _drawerItem('Crop Database', '/cropdata'),
+          _drawerItem('Calendar', '/calendar'),
+          _drawerItem('Weather', '/weather'),
+        ]),
       ),
       appBar: AppBar(
-        title: Text('Mapping', style: TextStyle(color: Colors.black)),
-        centerTitle: true,
         backgroundColor: Colors.white,
         elevation: 0.5,
+        centerTitle: true,
+        title: const Text('Mapping', style: TextStyle(color: Colors.black)),
         leading: Builder(
           builder: (ctx) => IconButton(
-            icon: Icon(Icons.menu, color: Colors.black),
+            icon: const Icon(Icons.menu, color: Colors.black),
             onPressed: () => Scaffold.of(ctx).openDrawer(),
           ),
         ),
         actions: [
           IconButton(
-            icon: Icon(Icons.add, color: Colors.black),
-            onPressed: _showAddDetailsOverlay,
+            tooltip: 'Refresh server plots',
+            icon: const Icon(Icons.refresh, color: Colors.black),
+            onPressed: _loadServerPlots,
+          ),
+          IconButton(
+            icon: const Icon(Icons.add, color: Colors.black),
+            onPressed: () {
+              if (_localPlots.isEmpty) return;
+              _openPlotDetails(_localPlots.last);
+            },
           ),
         ],
       ),
       body: Stack(
         children: [
           FlutterMap(
-            mapController: _mapController,
+            mapController: _map,
             options: MapOptions(
-              center: LatLng(-27.4698, 153.0251),
-              zoom: 16.0,
-              onTap: (_, latlng) => _addPoint(latlng),
+              initialCenter: const LatLng(-27.4698, 153.0251), // Brisbane
+              initialZoom: 16,
+              onTap: (_, latlng) => _onMapTap(latlng),
             ),
             children: [
               TileLayer(
-                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                userAgentPackageName: 'com.example.farmapp',
+                urlTemplate:
+                    'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+                subdomains: const ['a', 'b', 'c'],
+                userAgentPackageName: 'com.lim.farmapp',
               ),
-              if (_layers[0]) PolygonLayer(polygons: _plots),
+
+              // --- SERVER LAYERS ---
+              if (_layers[0] && _serverPolygons.isNotEmpty)
+                PolygonLayer(polygons: _serverPolygons),
+              if (_layers[0] && _serverMarkers.isNotEmpty)
+                MarkerLayer(markers: _serverMarkers),
+              if (_layers[0] && _serverPolyTapMarkers.isNotEmpty)
+                MarkerLayer(markers: _serverPolyTapMarkers),
+
+              // --- LOCAL SKETCH LAYERS (optional) ---
+              if (_layers[0] && _localPolygons.isNotEmpty)
+                PolygonLayer(polygons: _localPolygons),
+              if (_layers[3]) MarkerLayer(markers: _alerts),
             ],
           ),
-          if (_layers[1]) Positioned.fill(child: CustomPaint(painter: _GridPainter())),
-          if (_layers[2]) Positioned.fill(child: Container(color: Colors.red.withOpacity(0.2))),
-          if (_layers[3])
+
+          if (_loading)
+            const Positioned.fill(
+              child: IgnorePointer(
+                ignoring: true,
+                child: Center(child: CircularProgressIndicator()),
+              ),
+            ),
+
+          if (_error != null)
+            Positioned(
+              left: 12,
+              right: 12,
+              top: 12,
+              child: Material(
+                color: Colors.red.shade50,
+                borderRadius: BorderRadius.circular(8),
+                child: Padding(
+                  padding: const EdgeInsets.all(10),
+                  child: Text(
+                    _error!,
+                    style: TextStyle(color: Colors.red.shade800),
+                  ),
+                ),
+              ),
+            ),
+
+          if (_layers[1])
+            Positioned.fill(child: CustomPaint(painter: _GridPainter())),
+          if (_layers[2])
             Positioned.fill(
-              child: Center(
-                child: Icon(Icons.warning, size: 100, color: Colors.red.withOpacity(0.6)),
+              child: IgnorePointer(
+                child: Container(color: Colors.red.withOpacity(0.20)),
               ),
             ),
           Positioned(
             right: 12,
-            top: 100,
+            top: 110,
             child: Column(
               children: [
-                _toolButton(Icons.edit, 0),
-                SizedBox(height: 12),
-                _toolButton(Icons.add_location_alt, 1),
-                SizedBox(height: 12),
-                _toolButton(Icons.open_with, 2),
-                SizedBox(height: 12),
-                _toolButton(Icons.undo, 3),
+                _toolFab(DrawTool.vertex, Icons.edit),
+                _toolFab(DrawTool.addMarker, Icons.add_location_alt),
+                _toolFab(DrawTool.pan, Icons.open_with),
+                _toolFab(DrawTool.undo, Icons.undo),
               ],
             ),
           ),
           Positioned(
             left: 0,
             right: 0,
-            bottom: 80,
+            bottom: 84,
             child: Center(
               child: ToggleButtons(
                 isSelected: _layers,
                 onPressed: _toggleLayer,
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(12),
                 selectedColor: Colors.white,
-                fillColor: Colors.green,
                 color: Colors.black,
-                selectedBorderColor: Colors.black,
-                borderColor: Colors.grey,
-                borderWidth: 1.5,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                    child: Text(
-                      'Plots',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: _layers[0] ? Colors.white : Colors.black,
-                      ),
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                    child: Text(
-                      'Grid',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: _layers[1] ? Colors.white : Colors.black,
-                      ),
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                    child: Text(
-                      'Heatmap',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: _layers[2] ? Colors.white : Colors.black,
-                      ),
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                    child: Text(
-                      'Alerts',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: _layers[3] ? Colors.white : Colors.black,
-                      ),
-                    ),
-                  ),
+                fillColor: Colors.green,
+                children: const [
+                  _Pill(text: 'Plots'),
+                  _Pill(text: 'Grid'),
+                  _Pill(text: 'Heatmap'),
+                  _Pill(text: 'Alerts'),
                 ],
               ),
             ),
@@ -289,16 +694,19 @@ class _MappingPageState extends State<MappingPage> {
         ],
       ),
       bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _bottomIndex,
         type: BottomNavigationBarType.fixed,
-        currentIndex: _navIndex,
+        selectedItemColor: Colors.green,
+        unselectedItemColor: Colors.grey,
+        showSelectedLabels: false,
+        showUnselectedLabels: false,
         onTap: (i) {
-          setState(() => _navIndex = i);
+          setState(() => _bottomIndex = i);
           switch (i) {
             case 0:
               Navigator.pushNamed(context, '/');
               break;
             case 1:
-              Navigator.pushNamed(context, '/map');
               break;
             case 2:
               Navigator.pushNamed(context, '/tasks');
@@ -311,32 +719,68 @@ class _MappingPageState extends State<MappingPage> {
               break;
           }
         },
-        selectedItemColor: Colors.green,
-        unselectedItemColor: Colors.grey,
-        showSelectedLabels: false,
-        showUnselectedLabels: false,
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: ''),
           BottomNavigationBarItem(icon: Icon(Icons.map_outlined), label: ''),
-          BottomNavigationBarItem(icon: Icon(Icons.search), label: ''),
-          BottomNavigationBarItem(icon: Icon(Icons.show_chart), label: ''),
+          BottomNavigationBarItem(icon: Icon(Icons.list), label: ''),
+          BottomNavigationBarItem(icon: Icon(Icons.settings), label: ''),
           BottomNavigationBarItem(icon: Icon(Icons.calendar_month), label: ''),
         ],
       ),
     );
   }
 
-  Widget _toolButton(IconData icon, int idx) {
-    final selected = _activeTool == idx;
-    return Container(
-      decoration: BoxDecoration(
-        color: selected ? Colors.green : Colors.white,
-        shape: BoxShape.circle,
-        border: Border.all(color: Colors.black54),
-      ),
-      child: IconButton(
-        icon: Icon(icon, color: selected ? Colors.white : Colors.black),
-        onPressed: () => idx == 3 ? _undo() : _selectTool(idx),
+  Widget _drawerItem(String title, String route) {
+    return ListTile(
+      title: Text(title),
+      onTap: () {
+        Navigator.pop(context);
+        Navigator.pushNamed(context, route);
+      },
+    );
+  }
+
+  // --- Geometry helpers ---
+  LatLng _centroid(List<LatLng> points) {
+    // Polygon centroid (simple average fallback for degenerate cases)
+    double signedArea = 0;
+    double cx = 0;
+    double cy = 0;
+
+    for (int i = 0; i < points.length; i++) {
+      final p0 = points[i];
+      final p1 = points[(i + 1) % points.length];
+      final a = (p0.longitude * p1.latitude) - (p1.longitude * p0.latitude);
+      signedArea += a;
+      cx += (p0.longitude + p1.longitude) * a;
+      cy += (p0.latitude + p1.latitude) * a;
+    }
+    if (signedArea.abs() < 1e-9) {
+      // fallback
+      final avgLat =
+          points.fold<double>(0, (s, p) => s + p.latitude) / points.length;
+      final avgLng =
+          points.fold<double>(0, (s, p) => s + p.longitude) / points.length;
+      return LatLng(avgLat, avgLng);
+    }
+    signedArea *= 0.5;
+    cx /= (6.0 * signedArea);
+    cy /= (6.0 * signedArea);
+    return LatLng(cy, cx);
+  }
+}
+
+class _Pill extends StatelessWidget {
+  const _Pill({required this.text});
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      child: Text(
+        text,
+        style: const TextStyle(fontWeight: FontWeight.w600),
       ),
     );
   }
@@ -345,15 +789,15 @@ class _MappingPageState extends State<MappingPage> {
 class _GridPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()
+    final p = Paint()
       ..color = Colors.black12
       ..strokeWidth = 1;
-    const step = 40.0;
+    const step = 48.0;
     for (double x = 0; x < size.width; x += step) {
-      canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
+      canvas.drawLine(Offset(x, 0), Offset(x, size.height), p);
     }
     for (double y = 0; y < size.height; y += step) {
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
+      canvas.drawLine(Offset(0, y), Offset(size.width, y), p);
     }
   }
 

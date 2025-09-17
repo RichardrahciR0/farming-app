@@ -47,7 +47,7 @@ class SettingsPage extends StatelessWidget {
                 const SizedBox(height: 12),
                 ElevatedButton(
                   onPressed: () {
-                    // TODO: Implement Edit Profile functionality
+                
                   },
                   child: const Text("Edit Profile"),
                   style: ElevatedButton.styleFrom(

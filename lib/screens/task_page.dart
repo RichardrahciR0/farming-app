@@ -1,72 +1,94 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'add_task.dart';
+
+import '../services/event_service.dart'; // <-- uses your EventService
+// If your path differs, adjust the import accordingly.
 
 class TaskPage extends StatefulWidget {
+  const TaskPage({super.key});
+
   @override
-  _TaskPageState createState() => _TaskPageState();
+  State<TaskPage> createState() => _TaskPageState();
 }
 
 class _TaskPageState extends State<TaskPage> {
-  // --- DATA ---
-  List<Map<String, dynamic>> tasksToday = [
-    {
-      'title': 'Check Crop progression',
-      'time': '10:00 – 12:30 am',
-      'status': 'In Progress',
-      'checked': false,
-      'description':
-          'Review the crop progress dashboard to assess real-time updates on crop health and growth stages.',
-    },
-    {
-      'title': 'Prune Apple Trees Before Rain',
-      'time': '10:00 – 12:30 am',
-      'status': 'Completed',
-      'checked': false,
-      'description':
-          'Trim the branches of the apple trees to ensure proper growth and avoid weather damage.',
-    },
-    {
-      'title': 'Update Garden Map with New Beds',
-      'time': '10:00 – 12:30 am',
-      'status': 'Not started',
-      'checked': false,
-      'description':
-          'Add newly prepared garden beds to the garden layout in the system map.',
-    },
-  ];
+  final _svc = EventService();
 
-  final Map<String, List<Map<String, String>>> upcomingTasks = {
-    'Wed 1st May': [
-      {
-        'title': 'Irrigation Setup for New Crop Area',
-        'time': '12:00 – 13:30 pm'
-      },
-      {
-        'title': 'Apply Fertilizer to Orchard Zone B',
-        'time': '09:00 – 11:00 am'
-      },
-      {'title': 'Harvest Tomatoes', 'time': '12:00 – 13:30 pm'},
-    ],
-    'Fri 3rd May': [
-      {'title': 'Course UI Design', 'time': '15:00 – 16:00 pm'},
-      {'title': 'Log Planting Dates for New Herbs', 'time': '16:00 – 17:00 pm'},
-    ],
-  };
+  DateTime _visibleMonth = DateTime(DateTime.now().year, DateTime.now().month);
+  bool _loading = false;
+  List<EventItem> _events = [];
 
-  // --- STATE ---
-  bool showToday = true;
-  int selectedDayIndex = DateTime.now().weekday - 1; // Mon=0…Sun=6
-  final weekDates = List.generate(
-      7, (i) => DateTime.now().add(Duration(days: i))); // next 7 days
+  @override
+  void initState() {
+    super.initState();
+    _loadMonth(_visibleMonth);
+  }
+
+  // ---- Data loading ---------------------------------------------------------
+
+  DateTime _monthStart(DateTime m) => DateTime(m.year, m.month, 1);
+  DateTime _monthEnd(DateTime m) => DateTime(m.year, m.month + 1, 0, 23, 59, 59);
+
+  Future<void> _loadMonth(DateTime month) async {
+    setState(() => _loading = true);
+    final start = _monthStart(month);
+    final end = _monthEnd(month);
+    final items = await _svc.listEvents(start: start, end: end);
+    items.sort((a, b) => a.start.compareTo(b.start));
+    setState(() {
+      _events = items;
+      _loading = false;
+    });
+  }
+
+  // ---- Group events by day --------------------------------------------------
+
+  Map<DateTime, List<EventItem>> _groupByDay(List<EventItem> src) {
+    final map = <DateTime, List<EventItem>>{};
+    for (final e in src) {
+      final d = DateTime(e.start.year, e.start.month, e.start.day);
+      map.putIfAbsent(d, () => []).add(e);
+    }
+    final keys = map.keys.toList()..sort();
+    return {for (final k in keys) k: map[k]!};
+  }
+
+  // ---- Mutations ------------------------------------------------------------
+
+  Future<void> _toggleCompleted(EventItem e, bool value) async {
+    final ok = await _svc.updateCompleted(id: e.id, completed: value);
+    if (!mounted) return;
+    if (!ok) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to update task')),
+      );
+      return;
+    }
+    await _loadMonth(_visibleMonth);
+  }
+
+  Future<void> _changeStatus(EventItem e, String status) async {
+    final ok = await _svc.updateStatus(id: e.id, status: status);
+    if (!mounted) return;
+    if (!ok) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to change status')),
+      );
+      return;
+    }
+    await _loadMonth(_visibleMonth);
+  }
+
+  // ---- UI -------------------------------------------------------------------
 
   @override
   Widget build(BuildContext context) {
+    final byDay = _groupByDay(_events);
+
     return Scaffold(
-      // ── SIDE MENU ──────────────────────────────────────────────────────────
       drawer: Drawer(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+        child: ListView(
+          padding: EdgeInsets.zero,
           children: [
             Container(height: 100, color: Colors.green),
             _drawerItem(context, 'Dashboard', '/'),
@@ -81,55 +103,42 @@ class _TaskPageState extends State<TaskPage> {
         ),
       ),
 
-      // ── APP BAR ───────────────────────────────────────────────────────────
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0.5,
         centerTitle: true,
-        title: Text('Task Manager', style: TextStyle(color: Colors.black)),
-        leading: Builder(
-          builder: (ctx) => IconButton(
-            icon: Icon(Icons.menu, color: Colors.black),
-            onPressed: () => Scaffold.of(ctx).openDrawer(),
-          ),
-        ),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.add, color: Colors.black),
-            onPressed: () async {
-              final newTask = await Navigator.push<Map<String, dynamic>>(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => AddTaskPage(),
-                  ));
-              if (newTask != null) {
-                setState(() => tasksToday.add(newTask));
-              }
-            },
-          ),
-          Padding(
-            padding: EdgeInsets.only(right: 12),
-            child: CircleAvatar(
-                backgroundColor: Colors.grey,
-                child: Icon(Icons.person, color: Colors.white)),
-          ),
-        ],
+        title: const Text('Task Manager', style: TextStyle(color: Colors.black)),
+        iconTheme: const IconThemeData(color: Colors.black),
       ),
 
-      backgroundColor: Color(0xFFF7F8F9),
+      backgroundColor: const Color(0xFFF7F8F9),
       body: Column(
         children: [
-          _buildDateSelector(),
-          SizedBox(height: 8),
-          _buildSegmentToggle(),
+          const SizedBox(height: 8),
+          _monthHeader(),
+          const SizedBox(height: 8),
+          _weekDayStrip(),
+          const Divider(height: 16),
+
           Expanded(
-              child: showToday ? _buildTodayTasks() : _buildUpcomingTasks()),
+            child: _loading
+                ? const Center(child: CircularProgressIndicator())
+                : byDay.isEmpty
+                    ? const Center(child: Text('No tasks this month'))
+                    : ListView(
+                        padding: const EdgeInsets.only(bottom: 24),
+                        children: byDay.entries.map((entry) {
+                          final date = entry.key;
+                          final items = entry.value;
+                          return _daySection(date, items);
+                        }).toList(),
+                      ),
+          ),
         ],
       ),
 
-      // ── BOTTOM NAV ─────────────────────────────────────────────────────────
       bottomNavigationBar: BottomNavigationBar(
-        backgroundColor: Color(0xFFF7F8F9),
+        backgroundColor: const Color(0xFFF7F8F9),
         elevation: 0,
         currentIndex: 2,
         showSelectedLabels: false,
@@ -145,7 +154,7 @@ class _TaskPageState extends State<TaskPage> {
               Navigator.pushNamed(context, '/map');
               break;
             case 2:
-              break; // here
+              break;
             case 3:
               Navigator.pushNamed(context, '/settings');
               break;
@@ -165,297 +174,241 @@ class _TaskPageState extends State<TaskPage> {
     );
   }
 
-  // ── DATE SELECTOR ────────────────────────────────────────────────────────
-  Widget _buildDateSelector() {
-    return SizedBox(
-      height: 60,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        padding: EdgeInsets.symmetric(horizontal: 12),
-        itemCount: weekDates.length,
-        itemBuilder: (_, i) {
-          final d = weekDates[i];
-          final selected = i == selectedDayIndex;
-          return GestureDetector(
-            onTap: () => setState(() => selectedDayIndex = i),
-            child: Container(
-              width: 60,
-              margin: EdgeInsets.symmetric(horizontal: 4),
-              decoration: BoxDecoration(
-                color: selected ? Colors.green[700] : Colors.transparent,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              alignment: Alignment.center,
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(DateFormat.E().format(d),
-                      style: TextStyle(
-                          color: selected ? Colors.white : Colors.black)),
-                  Text(DateFormat.d().format(d),
-                      style: TextStyle(
-                          color: selected ? Colors.white : Colors.black)),
-                ],
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  // ── TODAY / UPCOMING PILL TOGGLE ─────────────────────────────────────────
-  Widget _buildSegmentToggle() {
+  Widget _monthHeader() {
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 16),
-      child: Container(
-        height: 40,
-        decoration: BoxDecoration(
-          color: Colors.grey[300],
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Row(children: [
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      child: Row(
+        children: [
+          IconButton(
+            icon: const Icon(Icons.chevron_left),
+            onPressed: () async {
+              final next = DateTime(_visibleMonth.year, _visibleMonth.month - 1);
+              setState(() => _visibleMonth = DateTime(next.year, next.month));
+              await _loadMonth(_visibleMonth);
+            },
+          ),
           Expanded(
-            child: GestureDetector(
-              onTap: () => setState(() => showToday = true),
-              child: Container(
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: showToday ? Colors.green : Colors.transparent,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text('Today',
-                    style: TextStyle(
-                        color: showToday ? Colors.white : Colors.black)),
+            child: Center(
+              child: Text(
+                DateFormat.yMMMM().format(_visibleMonth),
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
               ),
             ),
           ),
-          Expanded(
-            child: GestureDetector(
-              onTap: () => setState(() => showToday = false),
-              child: Container(
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: !showToday ? Colors.green : Colors.transparent,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text('Upcoming',
-                    style: TextStyle(
-                        color: !showToday ? Colors.white : Colors.black)),
-              ),
-            ),
+          IconButton(
+            icon: const Icon(Icons.chevron_right),
+            onPressed: () async {
+              final next = DateTime(_visibleMonth.year, _visibleMonth.month + 1);
+              setState(() => _visibleMonth = DateTime(next.year, next.month));
+              await _loadMonth(_visibleMonth);
+            },
           ),
-        ]),
+        ],
       ),
     );
   }
 
-  // ── TODAY TASKS LIST ─────────────────────────────────────────────────────
-  Widget _buildTodayTasks() {
-    return ListView.builder(
-      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      itemCount: tasksToday.length,
-      itemBuilder: (_, idx) {
-        final t = tasksToday[idx];
-        return GestureDetector(
-          onTap: () => _showTaskDetails(t),
-          child: Container(
-            margin: EdgeInsets.only(bottom: 16),
-            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 20),
-            decoration: BoxDecoration(
-              color: t['checked'] ? Colors.green[50] : Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 4)],
-            ),
-            child: Row(
-              children: [
-                // Title + Time
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(t['title'],
-                          style: TextStyle(
-                              fontWeight: FontWeight.w500,
-                              decoration: t['checked']
-                                  ? TextDecoration.lineThrough
-                                  : TextDecoration.none,
-                              color:
-                                  t['checked'] ? Colors.grey : Colors.black)),
-                      SizedBox(height: 8),
-                      Row(children: [
-                        Icon(Icons.access_time, size: 16),
-                        SizedBox(width: 4),
-                        Text(t['time']),
-                      ]),
-                    ],
+  Widget _weekDayStrip() {
+    final days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Row(
+        children: days
+            .map((d) => Expanded(
+                  child: Center(
+                    child: Text(d,
+                        style: TextStyle(
+                            color: Colors.grey[700],
+                            fontWeight: FontWeight.w600)),
                   ),
-                ),
-
-                // Checkbox
-                Checkbox(
-                    value: t['checked'],
-                    onChanged: (_) =>
-                        setState(() => t['checked'] = !t['checked'])),
-
-                // Status badge
-                GestureDetector(
-                  onTap: () => _showStatusDialog(idx),
-                  child: Container(
-                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: _statusColor(t['status']),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(t['status'],
-                        style: TextStyle(color: Colors.white, fontSize: 12)),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
+                ))
+            .toList(),
+      ),
     );
   }
 
-  // ── UPCOMING TASKS LIST ──────────────────────────────────────────────────
-  Widget _buildUpcomingTasks() {
-    return ListView(
-      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      children: upcomingTasks.entries.expand((entry) {
-        return [
-          // Date header
+  Widget _daySection(DateTime date, List<EventItem> items) {
+    final isToday = _isSameDay(date, DateTime.now());
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Date badge
           Container(
             width: double.infinity,
-            color: Colors.green,
-            padding: EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-            child: Text(entry.key,
-                style: TextStyle(
-                    color: Colors.white, fontWeight: FontWeight.bold)),
+            padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 10),
+            decoration: BoxDecoration(
+              color: isToday ? Colors.green[700] : Colors.green[800],
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              '${DateFormat.EEEE().format(date)}, ${DateFormat.yMMMd().format(date)}'
+              '${isToday ? "  (Today)" : ""}',
+              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+            ),
           ),
-          SizedBox(height: 8),
+          const SizedBox(height: 8),
 
-          // Tasks under that date
-          ...entry.value.map((t) {
-            return Container(
-              margin: EdgeInsets.only(bottom: 16),
-              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 20),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 4)],
-              ),
-              child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(t['title']!,
-                        style: TextStyle(
-                            fontWeight: FontWeight.w500, fontSize: 16)),
-                    SizedBox(height: 8),
-                    Row(children: [
-                      Icon(Icons.access_time, size: 16),
-                      SizedBox(width: 4),
-                      Text(t['time']!, style: TextStyle(fontSize: 14)),
-                    ]),
-                  ]),
-            );
-          }).toList(),
-        ];
-      }).toList(),
+          // Items
+          ...items.map((e) => _taskTile(e)).toList(),
+          const SizedBox(height: 8),
+        ],
+      ),
     );
   }
 
-  // ── DETAILS OVERLAY ───────────────────────────────────────────────────────
-  void _showTaskDetails(Map<String, dynamic> task) {
+  Widget _taskTile(EventItem e) {
+    final subtitle = _timeRange(e);
+    final checked = e.completed;
+
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: 6),
+      child: ListTile(
+        leading: Checkbox(
+          value: checked,
+          onChanged: (v) => _toggleCompleted(e, v ?? false),
+        ),
+        title: Text(
+          e.title,
+          style: TextStyle(
+            decoration: checked ? TextDecoration.lineThrough : TextDecoration.none,
+            color: checked ? Colors.grey : Colors.black,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        subtitle: Text(subtitle),
+        trailing: _statusChip(e),
+        onTap: () => _showTaskDetails(e),
+      ),
+    );
+  }
+
+  String _timeRange(EventItem e) {
+    final s = e.start.toLocal();
+    final startStr = DateFormat.jm().format(s);
+    if (e.end == null) {
+      return '${DateFormat.yMMMd().format(s)} • $startStr';
+    }
+    final endStr = DateFormat.jm().format(e.end!.toLocal());
+    return '${DateFormat.yMMMd().format(s)} • $startStr – $endStr';
+    }
+
+  Widget _statusChip(EventItem e) {
+    final (bg, label) = _statusStyle(e.status, e.completed);
+    return InkWell(
+      onTap: () => _selectStatus(e),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: bg,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Text(label, style: const TextStyle(color: Colors.white, fontSize: 12)),
+      ),
+    );
+  }
+
+  (Color, String) _statusStyle(String status, bool completed) {
+    if (completed || status == 'completed') {
+      return (Colors.green, 'Completed');
+    }
+    switch (status) {
+      case 'in_progress':
+        return (Colors.amber, 'In Progress');
+      case 'not_started':
+      default:
+        return (Colors.redAccent, 'Not started');
+    }
+  }
+
+  Future<void> _selectStatus(EventItem e) async {
+    final options = const [
+      ('not_started', 'Not started'),
+      ('in_progress', 'In Progress'),
+      ('completed', 'Completed'),
+    ];
+
+    final chosen = await showDialog<String>(
+      context: context,
+      builder: (_) => SimpleDialog(
+        title: const Text('Change status'),
+        children: options
+            .map((opt) => SimpleDialogOption(
+                  onPressed: () => Navigator.pop(context, opt.$1),
+                  child: Text(opt.$2),
+                ))
+            .toList()
+          ..add(SimpleDialogOption(
+            onPressed: () => Navigator.pop(context, null),
+            child: const Text('Cancel'),
+          )),
+      ),
+    );
+
+    if (chosen != null) {
+      // If user chose "completed", also set completed=true on server
+      if (chosen == 'completed') {
+        await _toggleCompleted(e, true);
+      } else {
+        await _changeStatus(e, chosen);
+      }
+    }
+  }
+
+  void _showTaskDetails(EventItem e) {
+    final subtitle = _timeRange(e);
     showDialog(
       context: context,
       builder: (_) => Dialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         child: Padding(
-          padding: EdgeInsets.all(20),
+          padding: const EdgeInsets.all(20),
           child: Column(mainAxisSize: MainAxisSize.min, children: [
-            Text(task['title'],
-                style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black)),
-            SizedBox(height: 8),
-            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-              Text(task['time'], style: TextStyle(color: Colors.grey[700])),
-              Text("Due in: 1 hr",
-                  style: TextStyle(
-                      color: Colors.black, fontWeight: FontWeight.bold)),
-            ]),
-            Divider(height: 24),
+            Text(e.title,
+                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600)),
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(subtitle, style: TextStyle(color: Colors.grey[700])),
+                Text(
+                  e.completed ? "Done" : "",
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+            const Divider(height: 24),
             Align(
-                alignment: Alignment.centerLeft,
-                child: Text("Description",
-                    style:
-                        TextStyle(fontSize: 18, fontWeight: FontWeight.bold))),
-            SizedBox(height: 8),
-            Text(task['description'],
-                style: TextStyle(fontSize: 16, color: Colors.black87)),
-            SizedBox(height: 24),
-            ElevatedButton(
+              alignment: Alignment.centerLeft,
+              child: Text('Notes',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      )),
+            ),
+            const SizedBox(height: 8),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                (e.notes ?? '').isEmpty ? '—' : e.notes!,
+                style: const TextStyle(fontSize: 16),
+              ),
+            ),
+            const SizedBox(height: 16),
+            FilledButton(
               onPressed: () => Navigator.pop(context),
-              style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green[700],
-                  padding: EdgeInsets.symmetric(vertical: 12, horizontal: 40),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8))),
-              child: Text("Done",
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-            )
+              style: FilledButton.styleFrom(backgroundColor: Colors.green[700]),
+              child: const Text('Close'),
+            ),
           ]),
         ),
       ),
     );
   }
 
-  // ── STATUS CHANGE DIALOG ────────────────────────────────────────────────
-  void _showStatusDialog(int idx) {
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        backgroundColor: Colors.grey[200],
-        title: Text('Change To:', textAlign: TextAlign.center),
-        content: Column(mainAxisSize: MainAxisSize.min, children: [
-          for (var status in ['Not started', 'In Progress', 'Completed'])
-            Padding(
-              padding: EdgeInsets.only(bottom: 8),
-              child: ElevatedButton(
-                onPressed: () {
-                  setState(() => tasksToday[idx]['status'] = status);
-                  Navigator.pop(context);
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: _statusColor(status),
-                  shape: StadiumBorder(),
-                ),
-                child: Text(status),
-              ),
-            ),
-          TextButton(
-              onPressed: () => Navigator.pop(context), child: Text('Cancel')),
-        ]),
-      ),
-    );
-  }
-
-  // ── HELPERS ─────────────────────────────────────────────────────────────
-  Color _statusColor(String status) {
-    switch (status) {
-      case 'In Progress':
-        return Colors.amber;
-      case 'Completed':
-        return Colors.green;
-      case 'Not started':
-        return Colors.redAccent;
-      default:
-        return Colors.grey;
-    }
-  }
+  bool _isSameDay(DateTime a, DateTime b) =>
+      a.year == b.year && a.month == b.month && a.day == b.day;
 
   Widget _drawerItem(BuildContext c, String title, String route) {
     return ListTile(

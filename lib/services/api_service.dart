@@ -1,50 +1,59 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
-  // Replace with same IP as auth backend if needed
-  final baseUrl = "http://10.0.2.2:8001/api";
+  static const String baseUrl = 'http://192.168.1.101:8000/api';
 
-  Future<List<Map<String, dynamic>>> fetchCrops() async {
-    final response = await http.get(Uri.parse('$baseUrl/crops/'));
-    if (response.statusCode == 200) {
-      final List data = json.decode(response.body);
-      return data.cast<Map<String, dynamic>>();
-    } else {
-      throw Exception('Failed to load crops: ${response.statusCode}');
-    }
+  // Save JWT tokens after login
+  static Future<void> saveTokens(String accessToken, String refreshToken) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('access_token', accessToken);
+    await prefs.setString('refresh_token', refreshToken);
   }
 
-  Future<bool> addCrop(String name, String spacing, String harvest) async {
+  // Get access token from storage
+  static Future<String?> getAccessToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('access_token');
+  }
+
+  // Save dashboard layout to backend
+  static Future<bool> saveDashboardConfig(List<Map<String, dynamic>> widgets) async {
+    final token = await getAccessToken();
+    if (token == null) return false;
+
+    final url = Uri.parse('$baseUrl/dashboard/');
     final response = await http.post(
-      Uri.parse('$baseUrl/crops/'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({
-        'name': name,
-        'spacing': spacing,
-        'harvest': harvest,
-      }),
+      url,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode({'widgets': widgets}),
     );
-    return response.statusCode == 201;
+
+    return response.statusCode == 200 || response.statusCode == 201;
   }
 
-  Future<bool> updateCrop(int id, String name, String spacing, String harvest) async {
-    final response = await http.put(
-      Uri.parse('$baseUrl/crops/$id/'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({
-        'name': name,
-        'spacing': spacing,
-        'harvest': harvest,
-      }),
-    );
-    return response.statusCode == 200;
-  }
+  // Load dashboard layout from backend
+  static Future<List<Map<String, dynamic>>> loadDashboardConfig() async {
+    final token = await getAccessToken();
+    if (token == null) return [];
 
-  Future<bool> deleteCrop(int id) async {
-    final response = await http.delete(
-      Uri.parse('$baseUrl/crops/$id/'),
+    final url = Uri.parse('$baseUrl/dashboard/');
+    final response = await http.get(
+      url,
+      headers: {
+        'Authorization': 'Bearer $token',
+      },
     );
-    return response.statusCode == 204;
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      return List<Map<String, dynamic>>.from(data['widgets']);
+    }
+
+    return [];
   }
 }

@@ -11,7 +11,6 @@ class SignUpScreen extends StatefulWidget {
 
 class _SignUpScreenState extends State<SignUpScreen> {
   final TextEditingController emailController = TextEditingController();
-  final TextEditingController usernameController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
   final TextEditingController confirmPasswordController = TextEditingController();
 
@@ -19,11 +18,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
   Future<void> _register() async {
     final email = emailController.text.trim();
-    final username = usernameController.text.trim();
     final password = passwordController.text.trim();
     final rePassword = confirmPasswordController.text.trim();
 
-    if (email.isEmpty || username.isEmpty || password.isEmpty || rePassword.isEmpty) {
+    if (email.isEmpty || password.isEmpty || rePassword.isEmpty) {
       _showDialog("All fields are required.");
       return;
     }
@@ -36,18 +34,15 @@ class _SignUpScreenState extends State<SignUpScreen> {
     setState(() => _isLoading = true);
 
     try {
-      final response = await http
-          .post(
-            Uri.parse('http://192.168.1.115:8000/auth/users/'),
-            headers: {'Content-Type': 'application/json'},
-            body: jsonEncode({
-              'email': email,
-              'username': username,
-              'password': password,
-              're_password': rePassword, // ✅ Important field added
-            }),
-          )
-          .timeout(const Duration(seconds: 10));
+      final response = await http.post(
+        Uri.parse('http://192.168.1.101:8000/api/auth/users/'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'email': email,
+          'password': password,
+          're_password': rePassword,
+        }),
+      ).timeout(const Duration(seconds: 10));
 
       setState(() => _isLoading = false);
 
@@ -73,7 +68,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
           TextButton(
             onPressed: () {
               Navigator.pop(context);
-              if (redirect) Navigator.pop(context); // return to login
+              if (redirect) Navigator.pop(context); // Go back to login
             },
             child: const Text("OK"),
           )
@@ -92,8 +87,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             const Text('Create an Account', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 16),
-            TextField(controller: usernameController, decoration: const InputDecoration(hintText: 'Username')),
             const SizedBox(height: 16),
             TextField(controller: emailController, decoration: const InputDecoration(hintText: 'Email')),
             const SizedBox(height: 16),

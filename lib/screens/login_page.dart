@@ -29,7 +29,7 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     if (success) {
-      Navigator.pushReplacementNamed(context, '/'); // Home route
+      Navigator.pushReplacementNamed(context, '/');
     } else {
       showDialog(
         context: context,

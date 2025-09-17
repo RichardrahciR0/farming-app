@@ -1,28 +1,100 @@
+from djoser.serializers import UserCreateSerializer as DjoserUserCreateSerializer
 from rest_framework import serializers
-from .models import CustomUser
-from django.contrib.auth.password_validation import validate_password
+
+from .models import CustomUser, DashboardPreference, Event
+
+
+# -----------------
+# Users
+# -----------------
+class CustomUserCreateSerializer(DjoserUserCreateSerializer):
+    class Meta:
+        model = CustomUser
+        fields = ("id", "email", "password", "re_password")
+        extra_kwargs = {"password": {"write_only": True}, "re_password": {"write_only": True}}
 
 
 class CustomUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = CustomUser
-        fields = ['id', 'email', 'first_name', 'last_name', 'date_joined']
+        fields = ("id", "email", "username")
 
 
-class CustomUserCreateSerializer(serializers.ModelSerializer):
-    password = serializers.CharField(write_only=True, required=True, validators=[validate_password])
-    password2 = serializers.CharField(write_only=True, required=True)
+# -----------------
+# Dashboard
+# -----------------
+class DashboardPreferenceSerializer(serializers.ModelSerializer):
+    widgets = serializers.JSONField()
 
     class Meta:
-        model = CustomUser
-        fields = ['email', 'first_name', 'last_name', 'password', 'password2']
+        model = DashboardPreference
+        fields = ("widgets", "updated_at")
+
+
+class DashboardPreferenceUpdateSerializer(serializers.ModelSerializer):
+    widgets = serializers.JSONField()
+
+    class Meta:
+        model = DashboardPreference
+        fields = ("widgets",)
+
+    def validate_widgets(self, value):
+        if not isinstance(value, list):
+            raise serializers.ValidationError("widgets must be a list")
+        for i, item in enumerate(value):
+            if not isinstance(item, dict):
+                raise serializers.ValidationError(f"widgets[{i}] must be an object")
+            if "name" not in item or "visible" not in item:
+                raise serializers.ValidationError(
+                    f"widgets[{i}] must include 'name' and 'visible'"
+                )
+            if not isinstance(item["name"], str):
+                raise serializers.ValidationError(f"widgets[{i}].name must be a string")
+            if not isinstance(item["visible"], bool):
+                raise serializers.ValidationError(f"widgets[{i}].visible must be a boolean")
+        return value
+
+
+# -----------------
+# Events
+# -----------------
+class EventSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Event
+        fields = (
+            "id",
+            "title",
+            "notes",
+            "start_dt",
+            "end_dt",
+            "all_day",
+            "location",
+            "status",
+            "completed",
+            "updated_at",
+        )
+
+
+class EventCreateUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Event
+        fields = (
+            "title",
+            "notes",
+            "start_dt",
+            "end_dt",
+            "all_day",
+            "location",
+            "status",
+            "completed",
+        )
 
     def validate(self, attrs):
-        if attrs['password'] != attrs['password2']:
-            raise serializers.ValidationError({"password": "Password fields didn’t match."})
+        start = attrs.get("start_dt") or getattr(self.instance, "start_dt", None)
+        end = attrs.get("end_dt") or getattr(self.instance, "end_dt", None)
+        if start and end and end < start:
+            raise serializers.ValidationError("end_dt must be after start_dt.")
         return attrs
 
     def create(self, validated_data):
-        validated_data.pop('password2')
-        user = CustomUser.objects.create_user(**validated_data)
-        return user
+        return Event.objects.create(user=self.context["request"].user, **validated_data)
