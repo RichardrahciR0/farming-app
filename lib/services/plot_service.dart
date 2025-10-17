@@ -69,12 +69,16 @@ class PlotService {
 
   Future<http.Response> _authedPost(String path, Map<String, dynamic> body) async {
     final url = Uri.parse('${_auth.baseUrl}$path');
-    return _retry401((headers) => http.post(url, headers: headers, body: jsonEncode(body)));
+    return _retry401(
+      (headers) => http.post(url, headers: headers, body: jsonEncode(body)),
+    );
   }
 
   Future<http.Response> _authedPatch(String path, Map<String, dynamic> body) async {
     final url = Uri.parse('${_auth.baseUrl}$path');
-    return _retry401((headers) => http.patch(url, headers: headers, body: jsonEncode(body)));
+    return _retry401(
+      (headers) => http.patch(url, headers: headers, body: jsonEncode(body)),
+    );
   }
 
   Future<http.Response> _authedDelete(String path) async {
@@ -86,43 +90,69 @@ class PlotService {
   // GEOJSON HELPERS
   // ---------------------------------------------------------------------------
 
+  /// Ensures [ring] is closed (first == last) in [lng,lat] order.
+  static List<List<double>> _ensureClosedLngLat(List<List<double>> ring) {
+    if (ring.isEmpty) return ring;
+    final first = ring.first;
+    final last = ring.last;
+    if (first.length >= 2 &&
+        last.length >= 2 &&
+        first[0] == last[0] &&
+        first[1] == last[1]) {
+      return ring;
+    }
+    return [...ring, first];
+  }
+
   /// GeoJSON Polygon from CLOSED ring of LatLngs. Coordinates are [lng, lat].
   static Map<String, dynamic> polygonGeoJsonFromLatLngs(List<LatLng> closedRing) {
     final coords = closedRing.map((p) => [p.longitude, p.latitude]).toList();
+    final closed = _ensureClosedLngLat(coords);
     return {
-      "type": "Polygon",
-      "coordinates": [coords],
+      'type': 'Polygon',
+      'coordinates': [closed],
     };
   }
 
   /// GeoJSON Point from a LatLng.
   static Map<String, dynamic> pointGeoJsonFromLatLng(LatLng p) {
     return {
-      "type": "Point",
-      "coordinates": [p.longitude, p.latitude],
+      'type': 'Point',
+      'coordinates': [p.longitude, p.latitude],
     };
   }
 
   /// Circle approximated as a Polygon (48 sides by default).
-  static Map<String, dynamic> circleAsPolygonGeoJson(LatLng center, double radiusM, {int segments = 48}) {
+  static Map<String, dynamic> circleAsPolygonGeoJson(
+    LatLng center,
+    double radiusM, {
+    int segments = 48,
+  }) {
     final dist = const Distance();
-    final ring = List.generate(segments, (i) {
+    final ring = List<List<double>>.generate(segments, (i) {
       final theta = (i / segments) * 360.0;
       final pt = dist.offset(center, radiusM, theta);
       return [pt.longitude, pt.latitude];
     });
-    if (ring.isEmpty || ring.first[0] != ring.last[0] || ring.first[1] != ring.last[1]) {
-      ring.add(ring.first);
-    }
-    return {"type": "Polygon", "coordinates": [ring]};
+    final closed = _ensureClosedLngLat(ring);
+    return {'type': 'Polygon', 'coordinates': [closed]};
   }
 
-  /// Area (m^2) for a CLOSED polygon ring (planar approximation around first point).
-  static double polygonAreaM2(List<LatLng> closedRing) {
-    if (closedRing.length < 3) return 0.0;
+  /// Area (m^2) for a polygon ring (planar approximation around first point).
+  /// Accepts a CLOSED ring; if not closed, it will be closed for calculation.
+  static double polygonAreaM2(List<LatLng> ring) {
+    if (ring.length < 3) return 0.0;
     final dist = const Distance();
-    final ref = closedRing.first;
-    final proj = closedRing.map((p) {
+
+    // Close if needed
+    final pts = (ring.first.latitude == ring.last.latitude &&
+            ring.first.longitude == ring.last.longitude)
+        ? ring
+        : [...ring, ring.first];
+
+    // Project to local XY around the first point
+    final ref = pts.first;
+    final proj = pts.map((p) {
       final dx = dist.distance(LatLng(ref.latitude, p.longitude), ref);
       final dy = dist.distance(LatLng(p.latitude, ref.longitude), ref);
       final sx = (p.longitude >= ref.longitude) ? dx : -dx;
@@ -203,7 +233,7 @@ class PlotService {
   Future<Map<String, dynamic>> updateGeometry({
     required int plotId,
     required Map<String, dynamic> geometry,
-    String? type,                  // optional: if also changing type
+    String? type, // optional: if also changing type
     double? areaM2,
     List<double>? circleCenterLngLat,
     double? circleRadiusM,
@@ -229,8 +259,8 @@ class PlotService {
     String? name,
     String? crop,
     String? notes,
-    String? plantedAt,         // 'YYYY-MM-DD'
-    String? expectedHarvest,   // 'YYYY-MM-DD'
+    String? plantedAt, // 'YYYY-MM-DD'
+    String? expectedHarvest, // 'YYYY-MM-DD'
     String? growthStage,
     double? targetYieldKg,
   }) async {
@@ -280,12 +310,15 @@ class PlotService {
       )
         ..headers['Authorization'] = 'Bearer $bearer'
         ..fields['caption'] = caption
-        ..files.add(await http.MultipartFile.fromPath(
-          'image',
-          file.path,
-          filename: p.basename(file.path),
-          contentType: MediaType('image', _extToSubtype(p.extension(file.path))),
-        ));
+        ..files.add(
+          await http.MultipartFile.fromPath(
+            'image',
+            file.path,
+            filename: p.basename(file.path),
+            contentType:
+                MediaType('image', _extToSubtype(p.extension(file.path))),
+          ),
+        );
       final streamed = await req.send();
       return http.Response.fromStream(streamed);
     }
@@ -313,7 +346,10 @@ class PlotService {
   }
 
   /// DELETE /api/plots/{id}/media/{mediaId}/
-  Future<void> deleteImage({required int plotId, required int mediaId}) async {
+  Future<void> deleteImage({
+    required int plotId,
+    required int mediaId,
+  }) async {
     final res = await _authedDelete('/api/plots/$plotId/media/$mediaId/');
     if (res.statusCode != 204) {
       throw Exception('Delete image failed: ${res.statusCode} ${res.body}');
@@ -345,11 +381,11 @@ class PlotService {
   Future<Map<String, dynamic>> createPlotFromShape({
     required String shape,
     required String name,
-    required String plantedAt,             // 'YYYY-MM-DD'
+    required String plantedAt, // 'YYYY-MM-DD'
     String notes = '',
     String growthStage = '',
     String? crop,
-    String? expectedHarvest,               // 'YYYY-MM-DD'
+    String? expectedHarvest, // 'YYYY-MM-DD'
     double? targetYieldKg,
     required List<LatLng> points,
     LatLng? circleCenter,
@@ -365,7 +401,8 @@ class PlotService {
       areaM2 = 0;
     } else if (shape == 'circle') {
       if (circleCenter == null || circleRadiusM == null) {
-        throw ArgumentError('circleCenter and circleRadiusM required for circle');
+        throw ArgumentError(
+            'circleCenter and circleRadiusM required for circle');
       }
       geometry = circleAsPolygonGeoJson(circleCenter, circleRadiusM);
       areaM2 ??= math.pi * circleRadiusM * circleRadiusM;
@@ -395,8 +432,8 @@ class PlotService {
   /// Patch geometry by passing shape info.
   Future<Map<String, dynamic>> updateGeometryFromShape({
     required int plotId,
-    required String shape,                 // 'point' | 'polygon' | 'rectangle' | 'circle'
-    required List<LatLng> points,          // CLOSED for polygon/rectangle; 1 for point
+    required String shape, // 'point' | 'polygon' | 'rectangle' | 'circle'
+    required List<LatLng> points, // CLOSED for polygon/rectangle; 1 for point
     LatLng? circleCenter,
     double? circleRadiusM,
     double? explicitAreaM2,
@@ -410,7 +447,8 @@ class PlotService {
       areaM2 = 0;
     } else if (shape == 'circle') {
       if (circleCenter == null || circleRadiusM == null) {
-        throw ArgumentError('circleCenter and circleRadiusM required for circle');
+        throw ArgumentError(
+            'circleCenter and circleRadiusM required for circle');
       }
       geometry = circleAsPolygonGeoJson(circleCenter, circleRadiusM);
       areaM2 ??= math.pi * circleRadiusM * circleRadiusM;

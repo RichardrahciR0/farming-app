@@ -8,22 +8,11 @@ plugins {
 android {
     namespace = "com.example.flutter_application_1"
     compileSdk = flutter.compileSdkVersion
-    ndkVersion = "27.0.12077973"  //
-
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
-    }
-
-    kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_11.toString()
-    }
+    ndkVersion = "27.0.12077973"
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
+        // ✅ Use your own unique ID if you publish to Play Store
         applicationId = "com.example.flutter_application_1"
-        // You can update the following values to match your application needs.
-        // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
@@ -32,13 +21,31 @@ android {
 
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
+            // TODO: add your release signing config later
             signingConfig = signingConfigs.getByName("debug")
         }
+    }
+
+    // ✅ Enable Java 17 + desugaring
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+        isCoreLibraryDesugaringEnabled = true
+    }
+
+    kotlinOptions {
+        jvmTarget = "17"
     }
 }
 
 flutter {
     source = "../.."
+}
+
+dependencies {
+    // ✅ Required for core library desugaring
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
+
+    // ✅ Keep your Flutter dependencies after this comment
+    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
 }

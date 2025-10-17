@@ -1,3 +1,4 @@
+// lib/screens/mapping.dart
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -28,7 +29,7 @@ class PlotMeta {
 /// Record fetched from the backend (keeps the whole payload in [props])
 class ServerPlot {
   final int id;
-  final String type; // 'point' | 'polygon' | 'rectangle' | 'circle'
+  final String type; // 'point' | 'polygon' | 'rectangle' | 'circle' | 'multipolygon'
   final Map<String, dynamic> geometry; // GeoJSON
   final Map<String, dynamic> props; // full record (minus geometry ideally)
   final String name;
@@ -51,8 +52,8 @@ class ServerPlot {
 
     return ServerPlot(
       id: (j['id'] as num).toInt(),
-      type: (j['type'] ?? 'polygon') as String,
-      geometry: j['geometry'] as Map<String, dynamic>,
+      type: (j['type'] ?? 'polygon').toString(),
+      geometry: Map<String, dynamic>.from(j['geometry'] as Map),
       props: mapCopy,
       name: (j['name'] ?? 'Plot').toString(),
       growthStage: (j['growth_stage'] ?? '').toString(),
@@ -109,6 +110,39 @@ class _MappingPageState extends State<MappingPage> {
     _loadServerPlots();
   }
 
+  // ---------- GeoJSON helpers ----------
+  List<LatLng> _parseLinearRing(dynamic ringAny) {
+    // Accepts List<[lng,lat]>, drops duplicate closing point if present
+    final pts = <LatLng>[];
+    if (ringAny is! List) return pts;
+    for (final xy in ringAny) {
+      if (xy is List && xy.length >= 2) {
+        final lng = (xy[0] as num).toDouble();
+        final lat = (xy[1] as num).toDouble();
+        pts.add(LatLng(lat, lng));
+      }
+    }
+    if (pts.length >= 2) {
+      final a = pts.first, b = pts.last;
+      if (a.latitude == b.latitude && a.longitude == b.longitude) {
+        pts.removeLast(); // open ring for flutter_map
+      }
+    }
+    return pts;
+  }
+
+  List<List<LatLng>> _parsePolygonCoords(dynamic polyAny) {
+    // GeoJSON Polygon.coordinates: [ [ring0], [hole1], ... ]
+    // We render outer ring only for now.
+    final out = <List<LatLng>>[];
+    if (polyAny is! List || polyAny.isEmpty) return out;
+    final ringAny = polyAny.first; // outer ring
+    final ring = _parseLinearRing(ringAny);
+    if (ring.length >= 3) out.add(ring);
+    return out;
+  }
+  // -------------------------------------
+
   Future<void> _loadServerPlots() async {
     setState(() {
       _loading = true;
@@ -132,52 +166,72 @@ class _MappingPageState extends State<MappingPage> {
 
         if (gjType == 'Polygon') {
           final coordsAny = sp.geometry['coordinates'];
-          if (coordsAny is List && coordsAny.isNotEmpty) {
-            // GeoJSON Polygon: coordinates is List<List<[lng,lat]>>
-            final ringAny = coordsAny.first;
-            if (ringAny is List && ringAny.isNotEmpty) {
-              final points = <LatLng>[];
-              for (final xy in ringAny) {
-                if (xy is List && xy.length >= 2) {
-                  final lng = (xy[0] as num).toDouble();
-                  final lat = (xy[1] as num).toDouble();
-                  points.add(LatLng(lat, lng));
-                }
-              }
-              if (points.length >= 3) {
-                polygons.add(
-                  Polygon(
-                    points: points,
-                    color: Colors.green.withOpacity(0.30),
-                    borderColor: Colors.green.shade700,
-                    borderStrokeWidth: 2,
-                    label: '${sp.name}${sp.growthStage.isNotEmpty ? ' • ${sp.growthStage}' : ''}',
-                  ),
-                );
+          final rings = _parsePolygonCoords(coordsAny);
+          for (final ring in rings) {
+            final points = ring;
+            final unique = points.toSet().toList();
+            if (unique.length >= 3) {
+              polygons.add(
+                Polygon(
+                  points: points,
+                  color: Colors.green.withOpacity(0.30),
+                  borderColor: Colors.green.shade700,
+                  borderStrokeWidth: 2,
+                  label:
+                      '${sp.name}${sp.growthStage.isNotEmpty ? ' • ${sp.growthStage}' : ''}',
+                ),
+              );
 
-                // Add an invisible tap target at centroid to open details
-                final c = _centroid(points);
-                polyTapMarkers.add(
-                  Marker(
-                    point: c,
-                    width: 44,
-                    height: 44,
-                    child: InkWell(
-                      onTap: () => _showServerPlotDetails(sp),
-                      child: Tooltip(
-                        message:
-                            '${sp.name}${sp.growthStage.isNotEmpty ? ' • ${sp.growthStage}' : ''}\n(Tap for details)',
-                        preferBelow: false,
-                        child: const Icon(
-                          Icons.crop_square,
-                          // Mostly transparent; still leaves a small hit target
-                          color: Colors.transparent,
-                          size: 40,
-                        ),
-                      ),
+              final c = _centroid(points);
+              polyTapMarkers.add(
+                Marker(
+                  point: c,
+                  width: 44,
+                  height: 44,
+                  child: InkWell(
+                    onTap: () => _showServerPlotDetails(sp, c),
+                    child: const Icon(
+                      Icons.crop_square,
+                      color: Colors.transparent, // invisible tap target
+                      size: 40,
                     ),
                   ),
-                );
+                ),
+              );
+            }
+          }
+        } else if (gjType == 'MultiPolygon') {
+          // iterate each polygon’s outer ring
+          final multiAny = sp.geometry['coordinates'];
+          if (multiAny is List) {
+            for (final polyAny in multiAny) {
+              final rings = _parsePolygonCoords(polyAny);
+              for (final ring in rings) {
+                if (ring.length >= 3) {
+                  polygons.add(
+                    Polygon(
+                      points: ring,
+                      color: Colors.green.withOpacity(0.30),
+                      borderColor: Colors.green.shade700,
+                      borderStrokeWidth: 2,
+                      label:
+                          '${sp.name}${sp.growthStage.isNotEmpty ? ' • ${sp.growthStage}' : ''}',
+                    ),
+                  );
+                  final c = _centroid(ring);
+                  polyTapMarkers.add(
+                    Marker(
+                      point: c,
+                      width: 44,
+                      height: 44,
+                      child: InkWell(
+                        onTap: () => _showServerPlotDetails(sp, c),
+                        child: const Icon(Icons.crop_square,
+                            color: Colors.transparent, size: 40),
+                      ),
+                    ),
+                  );
+                }
               }
             }
           }
@@ -186,13 +240,14 @@ class _MappingPageState extends State<MappingPage> {
           if (coords is List && coords.length >= 2) {
             final lng = (coords[0] as num).toDouble();
             final lat = (coords[1] as num).toDouble();
+            final c = LatLng(lat, lng);
             markers.add(
               Marker(
-                point: LatLng(lat, lng),
+                point: c,
                 width: 40,
                 height: 40,
                 child: InkWell(
-                  onTap: () => _showServerPlotDetails(sp),
+                  onTap: () => _showServerPlotDetails(sp, c),
                   child: Tooltip(
                     message:
                         '${sp.name}${sp.growthStage.isNotEmpty ? ' • ${sp.growthStage}' : ''}\n(Tap for details)',
@@ -205,7 +260,7 @@ class _MappingPageState extends State<MappingPage> {
           }
         } else {
           // Circles/rectangles typically stored as Polygon in GeoJSON.
-          // If your backend returns 'Circle' with center+radius, approximate to polygon here.
+          // If your backend returns 'Circle' with center+radius, approximate on server.
         }
       }
 
@@ -346,9 +401,9 @@ class _MappingPageState extends State<MappingPage> {
                       plot.name = nameCtrl.text.trim().isEmpty
                           ? null
                           : nameCtrl.text.trim();
-                      plot.spacing = spacingCtrl.text.trim().isEmpty
-                          ? null
-                          : spacingCtrl.text.trim();
+                      plot.spacing = spacingCtrl.text.trim().isNotEmpty
+                          ? spacingCtrl.text.trim()
+                          : null;
                       if (dateCtrl.text.trim().isNotEmpty) {
                         plot.plantingDate =
                             DateTime.tryParse('${dateCtrl.text}T00:00:00');
@@ -369,7 +424,7 @@ class _MappingPageState extends State<MappingPage> {
   }
 
   // ── Server plot detail sheet (shows *everything* from Layout Planning)
-  Future<void> _showServerPlotDetails(ServerPlot sp) async {
+  Future<void> _showServerPlotDetails(ServerPlot sp, LatLng center) async {
     final fmt = DateFormat('yyyy-MM-dd');
     // Build display pairs from props, excluding geometry & internal keys
     final excluded = {'geometry'};
@@ -378,7 +433,6 @@ class _MappingPageState extends State<MappingPage> {
     sp.props.forEach((k, v) {
       if (excluded.contains(k)) return;
 
-      // Nicely format some known fields, else fallback to stringifying.
       if (v == null) return;
       String valStr;
       if (k == 'planted_at' && v is String && v.isNotEmpty) {
@@ -438,8 +492,10 @@ class _MappingPageState extends State<MappingPage> {
                   const SizedBox(width: 8),
                   if (sp.growthStage.isNotEmpty)
                     Container(
-                      padding:
-                          const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.green[50],
                         borderRadius: BorderRadius.circular(999),
@@ -493,7 +549,7 @@ class _MappingPageState extends State<MappingPage> {
               ),
               const SizedBox(height: 8),
 
-              // CTA: jump to Layout Planning to edit (optional)
+              // CTA: jump to Layout Planning (MapPage) to edit
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
@@ -504,12 +560,17 @@ class _MappingPageState extends State<MappingPage> {
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 14),
                   ),
-                  onPressed: () {
+                  onPressed: () async {
                     Navigator.pop(ctx);
-                    // If you pass arguments to preselect this plot, add them here:
-                    Navigator.pushNamed(context, '/map', arguments: {
-                      'plotId': sp.id,
+                    // IMPORTANT:
+                    // 1) Pass plotId as STRING to match PlotModel.id in MapPage
+                    // 2) Pass center fallback so MapPage can pan/zoom even if IDs don't match
+                    await Navigator.pushNamed(context, '/map', arguments: {
+                      'plotId': sp.id.toString(),
+                      'center': {'lat': center.latitude, 'lng': center.longitude},
                     });
+                    // when user returns from Layout Planning, refresh server plots
+                    if (mounted) _loadServerPlots();
                   },
                 ),
               ),

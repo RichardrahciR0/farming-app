@@ -1,13 +1,13 @@
 -- Merging decision tree log ---
 application
-INJECTED from /Users/lim/Desktop/Archive 5 copy/android/app/src/main/AndroidManifest.xml:11:5-41:19
-INJECTED from /Users/lim/Desktop/Archive 5 copy/android/app/src/debug/AndroidManifest.xml
-MERGED from [:geolocator_android] /Users/lim/Desktop/Archive 5 copy/build/geolocator_android/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:7:5-13:19
-MERGED from [:geolocator_android] /Users/lim/Desktop/Archive 5 copy/build/geolocator_android/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:7:5-13:19
+INJECTED from /Users/lim/Desktop/mobile-application/android/app/src/main/AndroidManifest.xml:13:5-43:19
+INJECTED from /Users/lim/Desktop/mobile-application/android/app/src/debug/AndroidManifest.xml
+MERGED from [:image_picker_android] /Users/lim/Desktop/mobile-application/build/image_picker_android/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:8:5-32:19
+MERGED from [:image_picker_android] /Users/lim/Desktop/mobile-application/build/image_picker_android/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:8:5-32:19
+MERGED from [:geolocator_android] /Users/lim/Desktop/mobile-application/build/geolocator_android/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:7:5-13:19
+MERGED from [:geolocator_android] /Users/lim/Desktop/mobile-application/build/geolocator_android/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:7:5-13:19
 MERGED from [com.google.android.gms:play-services-location:21.2.0] /Users/lim/.gradle/caches/8.10.2/transforms/cc3336a24e8ef5d3d66fff7f5ca80854/transformed/jetified-play-services-location-21.2.0/AndroidManifest.xml:7:5-20
 MERGED from [com.google.android.gms:play-services-location:21.2.0] /Users/lim/.gradle/caches/8.10.2/transforms/cc3336a24e8ef5d3d66fff7f5ca80854/transformed/jetified-play-services-location-21.2.0/AndroidManifest.xml:7:5-20
-MERGED from [:image_picker_android] /Users/lim/Desktop/Archive 5 copy/build/image_picker_android/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:8:5-32:19
-MERGED from [:image_picker_android] /Users/lim/Desktop/Archive 5 copy/build/image_picker_android/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:8:5-32:19
 MERGED from [com.google.android.gms:play-services-base:18.3.0] /Users/lim/.gradle/caches/8.10.2/transforms/9db9b81a577112600e8d2ee7b5450923/transformed/jetified-play-services-base-18.3.0/AndroidManifest.xml:19:5-23:19
 MERGED from [com.google.android.gms:play-services-base:18.3.0] /Users/lim/.gradle/caches/8.10.2/transforms/9db9b81a577112600e8d2ee7b5450923/transformed/jetified-play-services-base-18.3.0/AndroidManifest.xml:19:5-23:19
 MERGED from [com.google.android.gms:play-services-tasks:18.1.0] /Users/lim/.gradle/caches/8.10.2/transforms/7b180219ad72ca48e76b8a5127003ab7/transformed/jetified-play-services-tasks-18.1.0/AndroidManifest.xml:5:5-20
@@ -27,25 +27,26 @@ MERGED from [androidx.startup:startup-runtime:1.1.1] /Users/lim/.gradle/caches/8
 MERGED from [androidx.versionedparcelable:versionedparcelable:1.1.1] /Users/lim/.gradle/caches/8.10.2/transforms/92a2169b5b2674c8bbe10e1b1d80da0f/transformed/versionedparcelable-1.1.1/AndroidManifest.xml:24:5-25:19
 MERGED from [androidx.versionedparcelable:versionedparcelable:1.1.1] /Users/lim/.gradle/caches/8.10.2/transforms/92a2169b5b2674c8bbe10e1b1d80da0f/transformed/versionedparcelable-1.1.1/AndroidManifest.xml:24:5-25:19
 	android:extractNativeLibs
-		INJECTED from /Users/lim/Desktop/Archive 5 copy/android/app/src/debug/AndroidManifest.xml
+		INJECTED from /Users/lim/Desktop/mobile-application/android/app/src/debug/AndroidManifest.xml
 	android:appComponentFactory
 		ADDED from [androidx.core:core:1.13.1] /Users/lim/.gradle/caches/8.10.2/transforms/8cf478dec41eed746328fa8046755ba2/transformed/core-1.13.1/AndroidManifest.xml:28:18-86
 	android:name
-		INJECTED from /Users/lim/Desktop/Archive 5 copy/android/app/src/main/AndroidManifest.xml
+		INJECTED from /Users/lim/Desktop/mobile-application/android/app/src/main/AndroidManifest.xml
 manifest
-ADDED from /Users/lim/Desktop/Archive 5 copy/android/app/src/main/AndroidManifest.xml:1:1-50:12
-MERGED from /Users/lim/Desktop/Archive 5 copy/android/app/src/main/AndroidManifest.xml:1:1-50:12
-INJECTED from /Users/lim/Desktop/Archive 5 copy/android/app/src/debug/AndroidManifest.xml:1:1-7:12
-INJECTED from /Users/lim/Desktop/Archive 5 copy/android/app/src/debug/AndroidManifest.xml:1:1-7:12
-INJECTED from /Users/lim/Desktop/Archive 5 copy/android/app/src/debug/AndroidManifest.xml:1:1-7:12
-MERGED from [:shared_preferences_android] /Users/lim/Desktop/Archive 5 copy/build/shared_preferences_android/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:2:1-7:12
-MERGED from [:geolocator_android] /Users/lim/Desktop/Archive 5 copy/build/geolocator_android/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:2:1-15:12
+ADDED from /Users/lim/Desktop/mobile-application/android/app/src/main/AndroidManifest.xml:1:1-52:12
+MERGED from /Users/lim/Desktop/mobile-application/android/app/src/main/AndroidManifest.xml:1:1-52:12
+INJECTED from /Users/lim/Desktop/mobile-application/android/app/src/debug/AndroidManifest.xml:1:1-7:12
+INJECTED from /Users/lim/Desktop/mobile-application/android/app/src/debug/AndroidManifest.xml:1:1-7:12
+INJECTED from /Users/lim/Desktop/mobile-application/android/app/src/debug/AndroidManifest.xml:1:1-7:12
+MERGED from [:flutter_local_notifications] /Users/lim/Desktop/mobile-application/build/flutter_local_notifications/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:2:1-10:12
+MERGED from [:image_picker_android] /Users/lim/Desktop/mobile-application/build/image_picker_android/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:2:1-34:12
+MERGED from [:flutter_plugin_android_lifecycle] /Users/lim/Desktop/mobile-application/build/flutter_plugin_android_lifecycle/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:2:1-7:12
+MERGED from [:flutter_secure_storage] /Users/lim/Desktop/mobile-application/build/flutter_secure_storage/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:2:1-10:12
+MERGED from [:geocoding_android] /Users/lim/Desktop/mobile-application/build/geocoding_android/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:2:1-7:12
+MERGED from [:geolocator_android] /Users/lim/Desktop/mobile-application/build/geolocator_android/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:2:1-15:12
+MERGED from [:path_provider_android] /Users/lim/Desktop/mobile-application/build/path_provider_android/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:2:1-7:12
+MERGED from [:shared_preferences_android] /Users/lim/Desktop/mobile-application/build/shared_preferences_android/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:2:1-7:12
 MERGED from [com.google.android.gms:play-services-location:21.2.0] /Users/lim/.gradle/caches/8.10.2/transforms/cc3336a24e8ef5d3d66fff7f5ca80854/transformed/jetified-play-services-location-21.2.0/AndroidManifest.xml:2:1-9:12
-MERGED from [:image_picker_android] /Users/lim/Desktop/Archive 5 copy/build/image_picker_android/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:2:1-34:12
-MERGED from [:flutter_plugin_android_lifecycle] /Users/lim/Desktop/Archive 5 copy/build/flutter_plugin_android_lifecycle/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:2:1-7:12
-MERGED from [:flutter_secure_storage] /Users/lim/Desktop/Archive 5 copy/build/flutter_secure_storage/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:2:1-10:12
-MERGED from [:geocoding_android] /Users/lim/Desktop/Archive 5 copy/build/geocoding_android/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:2:1-7:12
-MERGED from [:path_provider_android] /Users/lim/Desktop/Archive 5 copy/build/path_provider_android/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:2:1-7:12
 MERGED from [com.google.android.gms:play-services-base:18.3.0] /Users/lim/.gradle/caches/8.10.2/transforms/9db9b81a577112600e8d2ee7b5450923/transformed/jetified-play-services-base-18.3.0/AndroidManifest.xml:16:1-24:12
 MERGED from [com.google.android.gms:play-services-tasks:18.1.0] /Users/lim/.gradle/caches/8.10.2/transforms/7b180219ad72ca48e76b8a5127003ab7/transformed/jetified-play-services-tasks-18.1.0/AndroidManifest.xml:2:1-6:12
 MERGED from [com.google.android.gms:play-services-basement:18.3.0] /Users/lim/.gradle/caches/8.10.2/transforms/abeed4f47a72eff8f5b4e9bf7f2f3c91/transformed/jetified-play-services-basement-18.3.0/AndroidManifest.xml:16:1-26:12
@@ -55,6 +56,7 @@ MERGED from [androidx.fragment:fragment-ktx:1.7.1] /Users/lim/.gradle/caches/8.1
 MERGED from [androidx.fragment:fragment:1.7.1] /Users/lim/.gradle/caches/8.10.2/transforms/55520e4df2220e27f13f0bbb7467d11a/transformed/fragment-1.7.1/AndroidManifest.xml:2:1-7:12
 MERGED from [androidx.activity:activity-ktx:1.10.1] /Users/lim/.gradle/caches/8.10.2/transforms/68742d1210f2bc7bf3437fb32e500689/transformed/jetified-activity-ktx-1.10.1/AndroidManifest.xml:2:1-7:12
 MERGED from [androidx.activity:activity:1.10.1] /Users/lim/.gradle/caches/8.10.2/transforms/75e4fbbc117a05e46af63afcd91a7463/transformed/jetified-activity-1.10.1/AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.media:media:1.1.0] /Users/lim/.gradle/caches/8.10.2/transforms/cd79e8926f3586b575e2cf621318b1c2/transformed/media-1.1.0/AndroidManifest.xml:17:1-24:12
 MERGED from [androidx.recyclerview:recyclerview:1.0.0] /Users/lim/.gradle/caches/8.10.2/transforms/75e1bcd7a8b61b1e132d50e7766bfd37/transformed/recyclerview-1.0.0/AndroidManifest.xml:17:1-22:12
 MERGED from [androidx.legacy:legacy-support-core-ui:1.0.0] /Users/lim/.gradle/caches/8.10.2/transforms/cb98276ae8bdd946a2259a69bef27bdf/transformed/legacy-support-core-ui-1.0.0/AndroidManifest.xml:17:1-22:12
 MERGED from [androidx.slidingpanelayout:slidingpanelayout:1.2.0] /Users/lim/.gradle/caches/8.10.2/transforms/74ed8ceaa55f9ae57c7b49acd30346c2/transformed/slidingpanelayout-1.2.0/AndroidManifest.xml:17:1-24:12
@@ -105,60 +107,68 @@ MERGED from [androidx.annotation:annotation-experimental:1.4.0] /Users/lim/.grad
 MERGED from [androidx.core:core-viewtree:1.0.0] /Users/lim/.gradle/caches/8.10.2/transforms/1d1d008dbdc103dccf010f958cec393c/transformed/jetified-core-viewtree-1.0.0/AndroidManifest.xml:2:1-7:12
 MERGED from [com.getkeepsafe.relinker:relinker:1.4.5] /Users/lim/.gradle/caches/8.10.2/transforms/9e1412f82216e9a99f9f845f4567c1f2/transformed/jetified-relinker-1.4.5/AndroidManifest.xml:2:1-7:12
 	package
-		ADDED from /Users/lim/Desktop/Archive 5 copy/android/app/src/main/AndroidManifest.xml:2:5-48
-		INJECTED from /Users/lim/Desktop/Archive 5 copy/android/app/src/debug/AndroidManifest.xml
+		ADDED from /Users/lim/Desktop/mobile-application/android/app/src/main/AndroidManifest.xml:2:5-48
+		INJECTED from /Users/lim/Desktop/mobile-application/android/app/src/debug/AndroidManifest.xml
 	android:versionName
-		INJECTED from /Users/lim/Desktop/Archive 5 copy/android/app/src/debug/AndroidManifest.xml
+		INJECTED from /Users/lim/Desktop/mobile-application/android/app/src/debug/AndroidManifest.xml
 	android:versionCode
-		INJECTED from /Users/lim/Desktop/Archive 5 copy/android/app/src/debug/AndroidManifest.xml
+		INJECTED from /Users/lim/Desktop/mobile-application/android/app/src/debug/AndroidManifest.xml
 	xmlns:android
-		ADDED from /Users/lim/Desktop/Archive 5 copy/android/app/src/main/AndroidManifest.xml:1:11-69
+		ADDED from /Users/lim/Desktop/mobile-application/android/app/src/main/AndroidManifest.xml:1:11-69
 uses-permission#android.permission.INTERNET
-ADDED from /Users/lim/Desktop/Archive 5 copy/android/app/src/main/AndroidManifest.xml:5:5-67
-MERGED from /Users/lim/Desktop/Archive 5 copy/android/app/src/main/AndroidManifest.xml:5:5-67
-MERGED from /Users/lim/Desktop/Archive 5 copy/android/app/src/main/AndroidManifest.xml:5:5-67
+ADDED from /Users/lim/Desktop/mobile-application/android/app/src/main/AndroidManifest.xml:5:5-67
+MERGED from /Users/lim/Desktop/mobile-application/android/app/src/main/AndroidManifest.xml:5:5-67
+MERGED from /Users/lim/Desktop/mobile-application/android/app/src/main/AndroidManifest.xml:5:5-67
 	android:name
-		ADDED from /Users/lim/Desktop/Archive 5 copy/android/app/src/main/AndroidManifest.xml:5:22-64
+		ADDED from /Users/lim/Desktop/mobile-application/android/app/src/main/AndroidManifest.xml:5:22-64
+uses-permission#android.permission.POST_NOTIFICATIONS
+ADDED from /Users/lim/Desktop/mobile-application/android/app/src/main/AndroidManifest.xml:7:5-76
+MERGED from [:flutter_local_notifications] /Users/lim/Desktop/mobile-application/build/flutter_local_notifications/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:8:5-77
+MERGED from [:flutter_local_notifications] /Users/lim/Desktop/mobile-application/build/flutter_local_notifications/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:8:5-77
+	android:name
+		ADDED from /Users/lim/Desktop/mobile-application/android/app/src/main/AndroidManifest.xml:7:22-74
 uses-permission#android.permission.ACCESS_FINE_LOCATION
-ADDED from /Users/lim/Desktop/Archive 5 copy/android/app/src/main/AndroidManifest.xml:8:5-79
+ADDED from /Users/lim/Desktop/mobile-application/android/app/src/main/AndroidManifest.xml:10:5-79
 	android:name
-		ADDED from /Users/lim/Desktop/Archive 5 copy/android/app/src/main/AndroidManifest.xml:8:22-76
+		ADDED from /Users/lim/Desktop/mobile-application/android/app/src/main/AndroidManifest.xml:10:22-76
 uses-permission#android.permission.ACCESS_COARSE_LOCATION
-ADDED from /Users/lim/Desktop/Archive 5 copy/android/app/src/main/AndroidManifest.xml:9:5-81
+ADDED from /Users/lim/Desktop/mobile-application/android/app/src/main/AndroidManifest.xml:11:5-81
 	android:name
-		ADDED from /Users/lim/Desktop/Archive 5 copy/android/app/src/main/AndroidManifest.xml:9:22-78
+		ADDED from /Users/lim/Desktop/mobile-application/android/app/src/main/AndroidManifest.xml:11:22-78
 queries
-ADDED from /Users/lim/Desktop/Archive 5 copy/android/app/src/main/AndroidManifest.xml:44:5-49:15
+ADDED from /Users/lim/Desktop/mobile-application/android/app/src/main/AndroidManifest.xml:46:5-51:15
 intent#action:name:android.intent.action.PROCESS_TEXT+data:mimeType:text/plain
-ADDED from /Users/lim/Desktop/Archive 5 copy/android/app/src/main/AndroidManifest.xml:45:9-48:18
+ADDED from /Users/lim/Desktop/mobile-application/android/app/src/main/AndroidManifest.xml:47:9-50:18
 action#android.intent.action.PROCESS_TEXT
-ADDED from /Users/lim/Desktop/Archive 5 copy/android/app/src/main/AndroidManifest.xml:46:13-72
+ADDED from /Users/lim/Desktop/mobile-application/android/app/src/main/AndroidManifest.xml:48:13-72
 	android:name
-		ADDED from /Users/lim/Desktop/Archive 5 copy/android/app/src/main/AndroidManifest.xml:46:21-70
+		ADDED from /Users/lim/Desktop/mobile-application/android/app/src/main/AndroidManifest.xml:48:21-70
 data
-ADDED from /Users/lim/Desktop/Archive 5 copy/android/app/src/main/AndroidManifest.xml:47:13-50
+ADDED from /Users/lim/Desktop/mobile-application/android/app/src/main/AndroidManifest.xml:49:13-50
 	android:mimeType
-		ADDED from /Users/lim/Desktop/Archive 5 copy/android/app/src/main/AndroidManifest.xml:47:19-48
+		ADDED from /Users/lim/Desktop/mobile-application/android/app/src/main/AndroidManifest.xml:49:19-48
 uses-sdk
-INJECTED from /Users/lim/Desktop/Archive 5 copy/android/app/src/debug/AndroidManifest.xml reason: use-sdk injection requested
-INJECTED from /Users/lim/Desktop/Archive 5 copy/android/app/src/debug/AndroidManifest.xml
-INJECTED from /Users/lim/Desktop/Archive 5 copy/android/app/src/debug/AndroidManifest.xml
-MERGED from [:shared_preferences_android] /Users/lim/Desktop/Archive 5 copy/build/shared_preferences_android/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:5:5-44
-MERGED from [:shared_preferences_android] /Users/lim/Desktop/Archive 5 copy/build/shared_preferences_android/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:5:5-44
-MERGED from [:geolocator_android] /Users/lim/Desktop/Archive 5 copy/build/geolocator_android/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:5:5-44
-MERGED from [:geolocator_android] /Users/lim/Desktop/Archive 5 copy/build/geolocator_android/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:5:5-44
+INJECTED from /Users/lim/Desktop/mobile-application/android/app/src/debug/AndroidManifest.xml reason: use-sdk injection requested
+INJECTED from /Users/lim/Desktop/mobile-application/android/app/src/debug/AndroidManifest.xml
+INJECTED from /Users/lim/Desktop/mobile-application/android/app/src/debug/AndroidManifest.xml
+MERGED from [:flutter_local_notifications] /Users/lim/Desktop/mobile-application/build/flutter_local_notifications/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:5:5-44
+MERGED from [:flutter_local_notifications] /Users/lim/Desktop/mobile-application/build/flutter_local_notifications/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:5:5-44
+MERGED from [:image_picker_android] /Users/lim/Desktop/mobile-application/build/image_picker_android/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:6:5-44
+MERGED from [:image_picker_android] /Users/lim/Desktop/mobile-application/build/image_picker_android/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:6:5-44
+MERGED from [:flutter_plugin_android_lifecycle] /Users/lim/Desktop/mobile-application/build/flutter_plugin_android_lifecycle/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:5:5-44
+MERGED from [:flutter_plugin_android_lifecycle] /Users/lim/Desktop/mobile-application/build/flutter_plugin_android_lifecycle/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:5:5-44
+MERGED from [:flutter_secure_storage] /Users/lim/Desktop/mobile-application/build/flutter_secure_storage/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:6:5-8:53
+MERGED from [:flutter_secure_storage] /Users/lim/Desktop/mobile-application/build/flutter_secure_storage/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:6:5-8:53
+MERGED from [:geocoding_android] /Users/lim/Desktop/mobile-application/build/geocoding_android/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:5:5-44
+MERGED from [:geocoding_android] /Users/lim/Desktop/mobile-application/build/geocoding_android/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:5:5-44
+MERGED from [:geolocator_android] /Users/lim/Desktop/mobile-application/build/geolocator_android/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:5:5-44
+MERGED from [:geolocator_android] /Users/lim/Desktop/mobile-application/build/geolocator_android/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:5:5-44
+MERGED from [:path_provider_android] /Users/lim/Desktop/mobile-application/build/path_provider_android/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:5:5-44
+MERGED from [:path_provider_android] /Users/lim/Desktop/mobile-application/build/path_provider_android/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:5:5-44
+MERGED from [:shared_preferences_android] /Users/lim/Desktop/mobile-application/build/shared_preferences_android/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:5:5-44
+MERGED from [:shared_preferences_android] /Users/lim/Desktop/mobile-application/build/shared_preferences_android/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:5:5-44
 MERGED from [com.google.android.gms:play-services-location:21.2.0] /Users/lim/.gradle/caches/8.10.2/transforms/cc3336a24e8ef5d3d66fff7f5ca80854/transformed/jetified-play-services-location-21.2.0/AndroidManifest.xml:5:5-44
 MERGED from [com.google.android.gms:play-services-location:21.2.0] /Users/lim/.gradle/caches/8.10.2/transforms/cc3336a24e8ef5d3d66fff7f5ca80854/transformed/jetified-play-services-location-21.2.0/AndroidManifest.xml:5:5-44
-MERGED from [:image_picker_android] /Users/lim/Desktop/Archive 5 copy/build/image_picker_android/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:6:5-44
-MERGED from [:image_picker_android] /Users/lim/Desktop/Archive 5 copy/build/image_picker_android/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:6:5-44
-MERGED from [:flutter_plugin_android_lifecycle] /Users/lim/Desktop/Archive 5 copy/build/flutter_plugin_android_lifecycle/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:5:5-44
-MERGED from [:flutter_plugin_android_lifecycle] /Users/lim/Desktop/Archive 5 copy/build/flutter_plugin_android_lifecycle/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:5:5-44
-MERGED from [:flutter_secure_storage] /Users/lim/Desktop/Archive 5 copy/build/flutter_secure_storage/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:6:5-8:53
-MERGED from [:flutter_secure_storage] /Users/lim/Desktop/Archive 5 copy/build/flutter_secure_storage/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:6:5-8:53
-MERGED from [:geocoding_android] /Users/lim/Desktop/Archive 5 copy/build/geocoding_android/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:5:5-44
-MERGED from [:geocoding_android] /Users/lim/Desktop/Archive 5 copy/build/geocoding_android/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:5:5-44
-MERGED from [:path_provider_android] /Users/lim/Desktop/Archive 5 copy/build/path_provider_android/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:5:5-44
-MERGED from [:path_provider_android] /Users/lim/Desktop/Archive 5 copy/build/path_provider_android/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:5:5-44
 MERGED from [com.google.android.gms:play-services-base:18.3.0] /Users/lim/.gradle/caches/8.10.2/transforms/9db9b81a577112600e8d2ee7b5450923/transformed/jetified-play-services-base-18.3.0/AndroidManifest.xml:18:5-43
 MERGED from [com.google.android.gms:play-services-base:18.3.0] /Users/lim/.gradle/caches/8.10.2/transforms/9db9b81a577112600e8d2ee7b5450923/transformed/jetified-play-services-base-18.3.0/AndroidManifest.xml:18:5-43
 MERGED from [com.google.android.gms:play-services-tasks:18.1.0] /Users/lim/.gradle/caches/8.10.2/transforms/7b180219ad72ca48e76b8a5127003ab7/transformed/jetified-play-services-tasks-18.1.0/AndroidManifest.xml:4:5-43
@@ -177,6 +187,8 @@ MERGED from [androidx.activity:activity-ktx:1.10.1] /Users/lim/.gradle/caches/8.
 MERGED from [androidx.activity:activity-ktx:1.10.1] /Users/lim/.gradle/caches/8.10.2/transforms/68742d1210f2bc7bf3437fb32e500689/transformed/jetified-activity-ktx-1.10.1/AndroidManifest.xml:5:5-44
 MERGED from [androidx.activity:activity:1.10.1] /Users/lim/.gradle/caches/8.10.2/transforms/75e4fbbc117a05e46af63afcd91a7463/transformed/jetified-activity-1.10.1/AndroidManifest.xml:20:5-44
 MERGED from [androidx.activity:activity:1.10.1] /Users/lim/.gradle/caches/8.10.2/transforms/75e4fbbc117a05e46af63afcd91a7463/transformed/jetified-activity-1.10.1/AndroidManifest.xml:20:5-44
+MERGED from [androidx.media:media:1.1.0] /Users/lim/.gradle/caches/8.10.2/transforms/cd79e8926f3586b575e2cf621318b1c2/transformed/media-1.1.0/AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.media:media:1.1.0] /Users/lim/.gradle/caches/8.10.2/transforms/cd79e8926f3586b575e2cf621318b1c2/transformed/media-1.1.0/AndroidManifest.xml:20:5-22:41
 MERGED from [androidx.recyclerview:recyclerview:1.0.0] /Users/lim/.gradle/caches/8.10.2/transforms/75e1bcd7a8b61b1e132d50e7766bfd37/transformed/recyclerview-1.0.0/AndroidManifest.xml:20:5-44
 MERGED from [androidx.recyclerview:recyclerview:1.0.0] /Users/lim/.gradle/caches/8.10.2/transforms/75e1bcd7a8b61b1e132d50e7766bfd37/transformed/recyclerview-1.0.0/AndroidManifest.xml:20:5-44
 MERGED from [androidx.legacy:legacy-support-core-ui:1.0.0] /Users/lim/.gradle/caches/8.10.2/transforms/cb98276ae8bdd946a2259a69bef27bdf/transformed/legacy-support-core-ui-1.0.0/AndroidManifest.xml:20:5-44
@@ -276,59 +288,63 @@ MERGED from [androidx.core:core-viewtree:1.0.0] /Users/lim/.gradle/caches/8.10.2
 MERGED from [com.getkeepsafe.relinker:relinker:1.4.5] /Users/lim/.gradle/caches/8.10.2/transforms/9e1412f82216e9a99f9f845f4567c1f2/transformed/jetified-relinker-1.4.5/AndroidManifest.xml:5:5-43
 MERGED from [com.getkeepsafe.relinker:relinker:1.4.5] /Users/lim/.gradle/caches/8.10.2/transforms/9e1412f82216e9a99f9f845f4567c1f2/transformed/jetified-relinker-1.4.5/AndroidManifest.xml:5:5-43
 	tools:overrideLibrary
-		ADDED from [:flutter_secure_storage] /Users/lim/Desktop/Archive 5 copy/build/flutter_secure_storage/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:8:9-50
+		ADDED from [:flutter_secure_storage] /Users/lim/Desktop/mobile-application/build/flutter_secure_storage/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:8:9-50
 	android:targetSdkVersion
-		INJECTED from /Users/lim/Desktop/Archive 5 copy/android/app/src/debug/AndroidManifest.xml
+		INJECTED from /Users/lim/Desktop/mobile-application/android/app/src/debug/AndroidManifest.xml
 	android:minSdkVersion
-		INJECTED from /Users/lim/Desktop/Archive 5 copy/android/app/src/debug/AndroidManifest.xml
-service#com.baseflow.geolocator.GeolocatorLocationService
-ADDED from [:geolocator_android] /Users/lim/Desktop/Archive 5 copy/build/geolocator_android/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:8:9-12:56
-	android:enabled
-		ADDED from [:geolocator_android] /Users/lim/Desktop/Archive 5 copy/build/geolocator_android/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:10:13-35
-	android:exported
-		ADDED from [:geolocator_android] /Users/lim/Desktop/Archive 5 copy/build/geolocator_android/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:11:13-37
-	android:foregroundServiceType
-		ADDED from [:geolocator_android] /Users/lim/Desktop/Archive 5 copy/build/geolocator_android/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:12:13-53
+		INJECTED from /Users/lim/Desktop/mobile-application/android/app/src/debug/AndroidManifest.xml
+uses-permission#android.permission.VIBRATE
+ADDED from [:flutter_local_notifications] /Users/lim/Desktop/mobile-application/build/flutter_local_notifications/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:7:5-66
 	android:name
-		ADDED from [:geolocator_android] /Users/lim/Desktop/Archive 5 copy/build/geolocator_android/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:9:13-77
+		ADDED from [:flutter_local_notifications] /Users/lim/Desktop/mobile-application/build/flutter_local_notifications/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:7:22-63
 provider#io.flutter.plugins.imagepicker.ImagePickerFileProvider
-ADDED from [:image_picker_android] /Users/lim/Desktop/Archive 5 copy/build/image_picker_android/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:9:9-17:20
+ADDED from [:image_picker_android] /Users/lim/Desktop/mobile-application/build/image_picker_android/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:9:9-17:20
 	android:grantUriPermissions
-		ADDED from [:image_picker_android] /Users/lim/Desktop/Archive 5 copy/build/image_picker_android/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:13:13-47
+		ADDED from [:image_picker_android] /Users/lim/Desktop/mobile-application/build/image_picker_android/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:13:13-47
 	android:authorities
-		ADDED from [:image_picker_android] /Users/lim/Desktop/Archive 5 copy/build/image_picker_android/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:11:13-74
+		ADDED from [:image_picker_android] /Users/lim/Desktop/mobile-application/build/image_picker_android/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:11:13-74
 	android:exported
-		ADDED from [:image_picker_android] /Users/lim/Desktop/Archive 5 copy/build/image_picker_android/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:12:13-37
+		ADDED from [:image_picker_android] /Users/lim/Desktop/mobile-application/build/image_picker_android/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:12:13-37
 	android:name
-		ADDED from [:image_picker_android] /Users/lim/Desktop/Archive 5 copy/build/image_picker_android/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:10:13-82
+		ADDED from [:image_picker_android] /Users/lim/Desktop/mobile-application/build/image_picker_android/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:10:13-82
 meta-data#android.support.FILE_PROVIDER_PATHS
-ADDED from [:image_picker_android] /Users/lim/Desktop/Archive 5 copy/build/image_picker_android/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:14:13-16:75
+ADDED from [:image_picker_android] /Users/lim/Desktop/mobile-application/build/image_picker_android/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:14:13-16:75
 	android:resource
-		ADDED from [:image_picker_android] /Users/lim/Desktop/Archive 5 copy/build/image_picker_android/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:16:17-72
+		ADDED from [:image_picker_android] /Users/lim/Desktop/mobile-application/build/image_picker_android/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:16:17-72
 	android:name
-		ADDED from [:image_picker_android] /Users/lim/Desktop/Archive 5 copy/build/image_picker_android/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:15:17-67
+		ADDED from [:image_picker_android] /Users/lim/Desktop/mobile-application/build/image_picker_android/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:15:17-67
 service#com.google.android.gms.metadata.ModuleDependencies
-ADDED from [:image_picker_android] /Users/lim/Desktop/Archive 5 copy/build/image_picker_android/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:19:9-31:19
+ADDED from [:image_picker_android] /Users/lim/Desktop/mobile-application/build/image_picker_android/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:19:9-31:19
 	android:enabled
-		ADDED from [:image_picker_android] /Users/lim/Desktop/Archive 5 copy/build/image_picker_android/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:21:13-36
+		ADDED from [:image_picker_android] /Users/lim/Desktop/mobile-application/build/image_picker_android/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:21:13-36
 	android:exported
-		ADDED from [:image_picker_android] /Users/lim/Desktop/Archive 5 copy/build/image_picker_android/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:22:13-37
+		ADDED from [:image_picker_android] /Users/lim/Desktop/mobile-application/build/image_picker_android/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:22:13-37
 	tools:ignore
-		ADDED from [:image_picker_android] /Users/lim/Desktop/Archive 5 copy/build/image_picker_android/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:23:13-40
+		ADDED from [:image_picker_android] /Users/lim/Desktop/mobile-application/build/image_picker_android/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:23:13-40
 	android:name
-		ADDED from [:image_picker_android] /Users/lim/Desktop/Archive 5 copy/build/image_picker_android/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:20:13-78
+		ADDED from [:image_picker_android] /Users/lim/Desktop/mobile-application/build/image_picker_android/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:20:13-78
 intent-filter#action:name:com.google.android.gms.metadata.MODULE_DEPENDENCIES
-ADDED from [:image_picker_android] /Users/lim/Desktop/Archive 5 copy/build/image_picker_android/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:24:13-26:29
+ADDED from [:image_picker_android] /Users/lim/Desktop/mobile-application/build/image_picker_android/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:24:13-26:29
 action#com.google.android.gms.metadata.MODULE_DEPENDENCIES
-ADDED from [:image_picker_android] /Users/lim/Desktop/Archive 5 copy/build/image_picker_android/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:25:17-94
+ADDED from [:image_picker_android] /Users/lim/Desktop/mobile-application/build/image_picker_android/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:25:17-94
 	android:name
-		ADDED from [:image_picker_android] /Users/lim/Desktop/Archive 5 copy/build/image_picker_android/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:25:25-91
+		ADDED from [:image_picker_android] /Users/lim/Desktop/mobile-application/build/image_picker_android/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:25:25-91
 meta-data#photopicker_activity:0:required
-ADDED from [:image_picker_android] /Users/lim/Desktop/Archive 5 copy/build/image_picker_android/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:28:13-30:36
+ADDED from [:image_picker_android] /Users/lim/Desktop/mobile-application/build/image_picker_android/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:28:13-30:36
 	android:value
-		ADDED from [:image_picker_android] /Users/lim/Desktop/Archive 5 copy/build/image_picker_android/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:30:17-33
+		ADDED from [:image_picker_android] /Users/lim/Desktop/mobile-application/build/image_picker_android/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:30:17-33
 	android:name
-		ADDED from [:image_picker_android] /Users/lim/Desktop/Archive 5 copy/build/image_picker_android/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:29:17-63
+		ADDED from [:image_picker_android] /Users/lim/Desktop/mobile-application/build/image_picker_android/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:29:17-63
+service#com.baseflow.geolocator.GeolocatorLocationService
+ADDED from [:geolocator_android] /Users/lim/Desktop/mobile-application/build/geolocator_android/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:8:9-12:56
+	android:enabled
+		ADDED from [:geolocator_android] /Users/lim/Desktop/mobile-application/build/geolocator_android/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:10:13-35
+	android:exported
+		ADDED from [:geolocator_android] /Users/lim/Desktop/mobile-application/build/geolocator_android/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:11:13-37
+	android:foregroundServiceType
+		ADDED from [:geolocator_android] /Users/lim/Desktop/mobile-application/build/geolocator_android/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:12:13-53
+	android:name
+		ADDED from [:geolocator_android] /Users/lim/Desktop/mobile-application/build/geolocator_android/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:9:13-77
 activity#com.google.android.gms.common.api.GoogleApiActivity
 ADDED from [com.google.android.gms:play-services-base:18.3.0] /Users/lim/.gradle/caches/8.10.2/transforms/9db9b81a577112600e8d2ee7b5450923/transformed/jetified-play-services-base-18.3.0/AndroidManifest.xml:20:9-22:45
 	android:exported

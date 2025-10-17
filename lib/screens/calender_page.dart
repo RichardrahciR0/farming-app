@@ -1,8 +1,8 @@
-// lib/screens/calendar_page.dart
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../services/jwt_helper.dart';
 
@@ -66,10 +66,17 @@ class _CalendarPageState extends State<CalendarPage> {
       if (mounted) setState(() => _tasks = []);
     }
 
+    // Mirror this month into TaskPage local storage
+    try {
+      await _syncMonthToLocal(monthDate, _tasks);
+    } catch (e) {
+      debugPrint('⚠️ Local mirror failed: $e');
+    }
+
     if (mounted) setState(() => _loading = false);
   }
 
-  Future<void> _createEvent({
+  Future<Map<String, dynamic>?> _createEvent({
     required String title,
     required DateTime start,
     required DateTime end,
@@ -78,7 +85,7 @@ class _CalendarPageState extends State<CalendarPage> {
     String location = "",
   }) async {
     final headers = await JwtHelper.authHeaders();
-    if (headers == null) return;
+    if (headers == null) return null;
 
     final body = jsonEncode({
       "title": title,
@@ -95,8 +102,14 @@ class _CalendarPageState extends State<CalendarPage> {
       body: body,
     );
 
-    if (resp.statusCode != 201) {
+    if (resp.statusCode == 201) {
+      final created = jsonDecode(resp.body) as Map<String, dynamic>;
+      // Mirror to local TaskPage storage
+      await _mirrorEventToLocal(created);
+      return created;
+    } else {
       debugPrint("❌ Create failed ${resp.statusCode}: ${resp.body}");
+      return null;
     }
   }
 
@@ -111,10 +124,112 @@ class _CalendarPageState extends State<CalendarPage> {
 
     // Our Django endpoint returns 204 on successful delete
     if (resp.statusCode == 204 || resp.statusCode == 200) {
+      // Remove mirror
+      await _removeMirroredEvent(id);
       return true;
     }
     debugPrint("❌ Delete failed ${resp.statusCode}: ${resp.body}");
     return false;
+  }
+
+  // ======================================================
+  // ===== Local mirror (SharedPreferences used by Task) ==
+  // ======================================================
+
+  static const _localKey = 'tasks_v1';
+
+  String _srvId(int serverId) => 'srv_$serverId';
+
+  Map<String, dynamic> _eventToLocalJson(Map<String, dynamic> e) {
+    final sid = (e['id'] ?? -1) as int;
+    final title = (e['title'] ?? 'Untitled').toString();
+    final startStr = (e['start_dt'] ?? '').toString();
+
+    DateTime due;
+    try {
+      due = DateTime.parse(startStr).toLocal();
+    } catch (_) {
+      due = DateTime.now();
+    }
+
+    // Infer a type from title; default to inspection
+    String taskType = 'inspection';
+    final low = title.toLowerCase();
+    if (low.contains('water')) taskType = 'watering';
+    else if (low.contains('fertil')) taskType = 'fertilising';
+    else if (low.contains('weed')) taskType = 'weeding';
+    else if (low.contains('harvest')) taskType = 'harvest';
+
+    return {
+      'id': _srvId(sid),
+      'plotId': '',
+      'plotName': 'Calendar',
+      'crop': null,
+      'type': taskType,
+      'title': title,
+      'due': due.toIso8601String(),
+      'repeatEveryDays': null,
+      'done': false,
+    };
+  }
+
+  Future<List<Map<String, dynamic>>> _loadLocalTasks() async {
+    final sp = await SharedPreferences.getInstance();
+    final raw = sp.getString(_localKey);
+    if (raw == null) return [];
+    final list = (jsonDecode(raw) as List).cast<dynamic>();
+    return list.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+  }
+
+  Future<void> _saveLocalTasks(List<Map<String, dynamic>> arr) async {
+    final sp = await SharedPreferences.getInstance();
+    await sp.setString(_localKey, jsonEncode(arr));
+  }
+
+  Future<void> _mirrorEventToLocal(Map<String, dynamic> e) async {
+    final tasks = await _loadLocalTasks();
+    final id = _srvId((e['id'] ?? -1) as int);
+    final idx = tasks.indexWhere((x) => x['id'] == id);
+    final obj = _eventToLocalJson(e);
+    if (idx >= 0) {
+      tasks[idx] = obj;
+    } else {
+      tasks.add(obj);
+    }
+    await _saveLocalTasks(tasks);
+  }
+
+  Future<void> _removeMirroredEvent(int serverId) async {
+    final tasks = await _loadLocalTasks();
+    tasks.removeWhere((x) => x['id'] == _srvId(serverId));
+    await _saveLocalTasks(tasks);
+  }
+
+  Future<void> _syncMonthToLocal(DateTime month, List<dynamic> events) async {
+    final tasks = await _loadLocalTasks();
+    final start = DateTime(month.year, month.month, 1);
+    final end = DateTime(month.year, month.month + 1, 0, 23, 59, 59);
+
+    bool isSrvForMonth(Map<String, dynamic> t) {
+      try {
+        final idStr = (t['id'] as String);
+        if (!idStr.startsWith('srv_')) return false;
+        final due = DateTime.parse((t['due'] as String)).toLocal();
+        return !due.isBefore(start) && !due.isAfter(end);
+      } catch (_) {
+        return false;
+      }
+    }
+
+    // Remove existing mirrored items for this month
+    tasks.removeWhere(isSrvForMonth);
+
+    // Add fresh mirrors from server
+    for (final raw in events) {
+      final e = Map<String, dynamic>.from(raw as Map);
+      tasks.add(_eventToLocalJson(e));
+    }
+    await _saveLocalTasks(tasks);
   }
 
   // ======================================================
@@ -247,13 +362,15 @@ class _CalendarPageState extends State<CalendarPage> {
                     return;
                   }
 
-                  await _createEvent(
+                  final created = await _createEvent(
                     title: titleCtrl.text.trim(),
                     start: start,
                     end: end,
                     notes: notesCtrl.text.trim(),
                   );
-                  await _fetchEventsForMonth(DateTime(start.year, start.month));
+                  if (created != null) {
+                    await _fetchEventsForMonth(DateTime(start.year, start.month));
+                  }
                   if (context.mounted) Navigator.pop(ctx);
                 },
                 child: const Text("Save"),
@@ -401,7 +518,6 @@ class _CalendarPageState extends State<CalendarPage> {
                                   );
                                 }
                               } else {
-                                // optional re-fetch to stay in sync
                                 await _fetchEventsForMonth(_monthForPage(_currentPage));
                                 if (mounted) {
                                   ScaffoldMessenger.of(context).showSnackBar(

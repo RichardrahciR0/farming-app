@@ -1,7 +1,6 @@
 name: farmapp
 description: A new Flutter project.
-
-publish_to: 'none' 
+publish_to: 'none'
 
 version: 1.0.0+1
 
@@ -27,8 +26,8 @@ dependencies:
   # Media & picker
   image_picker: ^1.2.0
 
-  # AI
-  google_generative_ai: ^0.4.6
+  # AI (v1beta SDK)
+  google_generative_ai: ^0.4.7
 
   # Location + date formatting
   geolocator: ^13.0.2
@@ -37,7 +36,8 @@ dependencies:
   http_parser: ^4.1.2
   path: ^1.9.1
 
-
+  flutter_local_notifications: ^17.1.2
+  timezone: ^0.9.2
 
 dev_dependencies:
   flutter_test:
@@ -46,8 +46,6 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
-
   assets:
     - assets/logo.png
-  
     - assets/farm.jpg

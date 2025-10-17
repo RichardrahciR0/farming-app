@@ -5,14 +5,13 @@ import 'package:http/http.dart' as http;
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart' as geo;
 import 'package:intl/intl.dart';
-import 'package:google_generative_ai/google_generative_ai.dart';
 
 // Read your Gemini API key at runtime (don't hardcode!)
 const String kGeminiApiKey = String.fromEnvironment('GEMINI_API_KEY');
 
 // ⚠️ DEV-ONLY fallback (used only in debug/profile via `assert`).
 // Replace with your own key locally. Do NOT commit to a public repo.
-const String _DEV_FALLBACK_KEY = 'AIzaSyDIBEL2QNHfxMhKjEoCF-EnKvK4ULo5Up4';
+const String _DEV_FALLBACK_KEY = 'YOUR_LOCAL_DEV_KEY_HERE';
 
 // Returns runtime key, or dev fallback in debug/profile builds.
 // In release, the assert is stripped so only --dart-define works.
@@ -310,7 +309,6 @@ class _WeatherPageState extends State<WeatherPage> {
       'hot' : ['sweet corn', 'eggplant', 'chilli', 'okra'],
     };
 
-    final bandNow = band(cur);
     final bandWeekMin = band((weekMin ?? cur));
     final bandWeekMax = band((weekMax ?? cur));
 
@@ -351,6 +349,90 @@ class _WeatherPageState extends State<WeatherPage> {
     return advice;
   }
 
+  // ---------- Gemini model discovery + REST calls ----------
+
+  // List models for a given API version ('v1' or 'v1beta').
+  Future<List<String>> _listModels(String apiKey, {required String version}) async {
+    final uri = Uri.parse(
+      'https://generativelanguage.googleapis.com/$version/models?key=$apiKey',
+    );
+    final r = await http.get(uri);
+    if (r.statusCode != 200) {
+      throw Exception('listModels $version HTTP ${r.statusCode}: ${r.body}');
+    }
+    final data = jsonDecode(r.body) as Map<String, dynamic>;
+    final models = (data['models'] as List?) ?? const [];
+    return models
+        .map((m) => (m as Map<String, dynamic>)['name'] as String? ?? '')
+        .where((n) => n.isNotEmpty)
+        .map((n) => n.startsWith('models/') ? n.substring(7) : n)
+        .toList();
+  }
+
+  // Pick the best available model from a list of IDs.
+  String _pickBestModel(List<String> ids) {
+    const candidates = [
+      'gemini-1.5-flash',
+      'gemini-1.5-flash-latest',
+      'gemini-1.5-flash-002',
+      'gemini-1.5-flash-001',
+      'gemini-1.5-pro',
+      'gemini-1.5-pro-latest',
+      'gemini-1.5-pro-002',
+      'gemini-1.5-pro-001',
+      'gemini-1.0-pro',
+      'gemini-1.0-pro-001',
+      'gemini-pro', // legacy on v1beta
+    ];
+    for (final c in candidates) {
+      if (ids.contains(c)) return c;
+      final pref = ids.firstWhere(
+        (m) => m == c || m.startsWith('$c-'),
+        orElse: () => '',
+      );
+      if (pref.isNotEmpty) return pref;
+    }
+    return ids.firstWhere((m) => m.contains('gemini'), orElse: () => '');
+  }
+
+  // Generic generateContent over REST for v1/v1beta.
+  Future<String> _geminiGenerate({
+    required String apiKey,
+    required String version, // 'v1' or 'v1beta'
+    required String model,   // e.g., 'gemini-1.5-flash-001'
+    required String prompt,
+  }) async {
+    final uri = Uri.parse(
+      'https://generativelanguage.googleapis.com/$version/models/$model:generateContent?key=$apiKey',
+    );
+    final body = jsonEncode({
+      "contents": [
+        {
+          "role": "user",
+          "parts": [{"text": prompt}]
+        }
+      ]
+    });
+
+    final res = await http.post(
+      uri,
+      headers: {"Content-Type": "application/json"},
+      body: body,
+    );
+
+    if (res.statusCode != 200) {
+      throw Exception('HTTP ${res.statusCode}: ${res.body}');
+    }
+
+    final data = jsonDecode(res.body) as Map<String, dynamic>;
+    final candidates = (data["candidates"] as List?) ?? const [];
+    if (candidates.isEmpty) return "No advice generated.";
+    final content = candidates.first["content"] as Map<String, dynamic>?;
+    final parts = (content?["parts"] as List?) ?? const [];
+    final text = (parts.isNotEmpty ? parts.first["text"] : "") as String? ?? "";
+    return text.trim().isEmpty ? "No advice generated." : text.trim();
+  }
+
   // ---------- Ask Google AI (Gemini) for richer suggestions ----------
   Future<void> _askGoogleAi() async {
     final apiKey = _getGeminiKey();
@@ -370,14 +452,9 @@ class _WeatherPageState extends State<WeatherPage> {
     });
 
     try {
-      final model = GenerativeModel(
-        model: 'gemini-1.5-flash', // swap to 'gemini-1.5-pro' for deeper output
-        apiKey: apiKey,
-      );
-
       String fmtDay(Map<String, dynamic> d, int i) {
         final dt = (d['date'] as DateTime?);
-        final lab = i == 0 ? 'Today' : (dt != null ? DateFormat('EEE').format(dt) : 'Day ${i+1}');
+        final lab = i == 0 ? 'Today' : (dt != null ? DateFormat('EEE').format(dt) : 'Day ${i + 1}');
         final mn = (d['min'] as double?)?.round();
         final mx = (d['max'] as double?)?.round();
         final pop = (d['pop'] as int?) ?? 0;
@@ -405,24 +482,60 @@ Current: ${cur ?? '-'}°C, POP today $popToday%
 $week
 ''';
 
-      final resp = await model.generateContent([Content.text(prompt)]);
-      final text = resp.text?.trim() ?? 'No advice generated.';
-
-      // Split to bullets
-      final raw = text.split('\n').map((s) => s.trim()).where((s) => s.isNotEmpty).toList();
-      final bullets = <String>[];
-      for (final s in raw) {
-        final m = RegExp(r'^[-•*]?\s*(.+)$').firstMatch(s);
-        if (m != null) {
-          final item = m.group(1)!.trim();
-          if (item.isNotEmpty) bullets.add(item);
+      // 1) Try v1 first
+      String? bestModel;
+      try {
+        final v1 = await _listModels(apiKey, version: 'v1');
+        bestModel = _pickBestModel(v1);
+        if (bestModel != null && bestModel.isNotEmpty) {
+          final text = await _geminiGenerate(
+            apiKey: apiKey,
+            version: 'v1',
+            model: bestModel,
+            prompt: prompt,
+          );
+          final lines = text.split('\n').map((s) => s.trim()).where((s) => s.isNotEmpty).toList();
+          final bullets = <String>[];
+          for (final s in lines) {
+            final m = RegExp(r'^[-•*]?\s*(.+)$').firstMatch(s);
+            if (m != null) bullets.add(m.group(1)!.trim());
+          }
+          setState(() {
+            _aiAdvice = bullets.isNotEmpty ? bullets : lines;
+            _aiBusy = false;
+            _adviceExpanded = true;
+          });
+          return; // done on v1
         }
+      } catch (_) {
+        // ignore and try v1beta
+      }
+
+      // 2) Fall back to v1beta
+      final v1b = await _listModels(apiKey, version: 'v1beta');
+      bestModel = _pickBestModel(v1b);
+      if (bestModel == null || bestModel.isEmpty) {
+        throw Exception('No compatible Gemini models available to this API key.');
+      }
+
+      final text = await _geminiGenerate(
+        apiKey: apiKey,
+        version: 'v1beta',
+        model: bestModel,
+        prompt: prompt,
+      );
+
+      final lines = text.split('\n').map((s) => s.trim()).where((s) => s.isNotEmpty).toList();
+      final bullets = <String>[];
+      for (final s in lines) {
+        final m = RegExp(r'^[-•*]?\s*(.+)$').firstMatch(s);
+        if (m != null) bullets.add(m.group(1)!.trim());
       }
 
       setState(() {
-        _aiAdvice = bullets.isNotEmpty ? bullets : raw;
+        _aiAdvice = bullets.isNotEmpty ? bullets : lines;
         _aiBusy = false;
-        _adviceExpanded = true; // open the card to show results
+        _adviceExpanded = true;
       });
     } catch (e) {
       setState(() {

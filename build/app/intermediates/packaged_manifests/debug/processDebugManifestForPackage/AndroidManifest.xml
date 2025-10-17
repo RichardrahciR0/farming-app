@@ -13,7 +13,8 @@
          to allow setting breakpoints, to provide hot reload, etc.
     -->
     <uses-permission android:name="android.permission.INTERNET" />
-    <!-- ✅ Add these for geolocator / GPS -->
+    <!-- Android 13+ runtime permission -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" /> <!-- ✅ Add these for geolocator / GPS -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" /> <!-- Optional: for PROCESS_TEXT intents (as you had) -->
     <queries>
@@ -23,6 +24,8 @@
             <data android:mimeType="text/plain" />
         </intent>
     </queries>
+
+    <uses-permission android:name="android.permission.VIBRATE" />
 
     <permission
         android:name="com.example.flutter_application_1.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
@@ -64,12 +67,6 @@
             android:name="flutterEmbedding"
             android:value="2" />
 
-        <service
-            android:name="com.baseflow.geolocator.GeolocatorLocationService"
-            android:enabled="true"
-            android:exported="false"
-            android:foregroundServiceType="location" />
-
         <provider
             android:name="io.flutter.plugins.imagepicker.ImagePickerFileProvider"
             android:authorities="com.example.flutter_application_1.flutter.image_provider"
@@ -91,6 +88,11 @@
                 android:name="photopicker_activity:0:required"
                 android:value="" />
         </service>
+        <service
+            android:name="com.baseflow.geolocator.GeolocatorLocationService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="location" />
 
         <activity
             android:name="com.google.android.gms.common.api.GoogleApiActivity"
