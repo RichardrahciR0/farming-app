@@ -1,6 +1,6 @@
 -- Merging decision tree log ---
 application
-INJECTED from /Users/lim/Desktop/mobile-application/android/app/src/main/AndroidManifest.xml:13:5-43:19
+INJECTED from /Users/lim/Desktop/mobile-application/android/app/src/main/AndroidManifest.xml:13:5-41:19
 INJECTED from /Users/lim/Desktop/mobile-application/android/app/src/debug/AndroidManifest.xml
 MERGED from [:image_picker_android] /Users/lim/Desktop/mobile-application/build/image_picker_android/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:8:5-32:19
 MERGED from [:image_picker_android] /Users/lim/Desktop/mobile-application/build/image_picker_android/intermediates/merged_manifest/debug/processDebugManifest/AndroidManifest.xml:8:5-32:19
@@ -33,8 +33,8 @@ MERGED from [androidx.versionedparcelable:versionedparcelable:1.1.1] /Users/lim/
 	android:name
 		INJECTED from /Users/lim/Desktop/mobile-application/android/app/src/main/AndroidManifest.xml
 manifest
-ADDED from /Users/lim/Desktop/mobile-application/android/app/src/main/AndroidManifest.xml:1:1-52:12
-MERGED from /Users/lim/Desktop/mobile-application/android/app/src/main/AndroidManifest.xml:1:1-52:12
+ADDED from /Users/lim/Desktop/mobile-application/android/app/src/main/AndroidManifest.xml:1:1-50:12
+MERGED from /Users/lim/Desktop/mobile-application/android/app/src/main/AndroidManifest.xml:1:1-50:12
 INJECTED from /Users/lim/Desktop/mobile-application/android/app/src/debug/AndroidManifest.xml:1:1-7:12
 INJECTED from /Users/lim/Desktop/mobile-application/android/app/src/debug/AndroidManifest.xml:1:1-7:12
 INJECTED from /Users/lim/Desktop/mobile-application/android/app/src/debug/AndroidManifest.xml:1:1-7:12
@@ -136,17 +136,17 @@ ADDED from /Users/lim/Desktop/mobile-application/android/app/src/main/AndroidMan
 	android:name
 		ADDED from /Users/lim/Desktop/mobile-application/android/app/src/main/AndroidManifest.xml:11:22-78
 queries
-ADDED from /Users/lim/Desktop/mobile-application/android/app/src/main/AndroidManifest.xml:46:5-51:15
+ADDED from /Users/lim/Desktop/mobile-application/android/app/src/main/AndroidManifest.xml:44:5-49:15
 intent#action:name:android.intent.action.PROCESS_TEXT+data:mimeType:text/plain
-ADDED from /Users/lim/Desktop/mobile-application/android/app/src/main/AndroidManifest.xml:47:9-50:18
+ADDED from /Users/lim/Desktop/mobile-application/android/app/src/main/AndroidManifest.xml:45:9-48:18
 action#android.intent.action.PROCESS_TEXT
-ADDED from /Users/lim/Desktop/mobile-application/android/app/src/main/AndroidManifest.xml:48:13-72
+ADDED from /Users/lim/Desktop/mobile-application/android/app/src/main/AndroidManifest.xml:46:13-72
 	android:name
-		ADDED from /Users/lim/Desktop/mobile-application/android/app/src/main/AndroidManifest.xml:48:21-70
+		ADDED from /Users/lim/Desktop/mobile-application/android/app/src/main/AndroidManifest.xml:46:21-70
 data
-ADDED from /Users/lim/Desktop/mobile-application/android/app/src/main/AndroidManifest.xml:49:13-50
+ADDED from /Users/lim/Desktop/mobile-application/android/app/src/main/AndroidManifest.xml:47:13-50
 	android:mimeType
-		ADDED from /Users/lim/Desktop/mobile-application/android/app/src/main/AndroidManifest.xml:49:19-48
+		ADDED from /Users/lim/Desktop/mobile-application/android/app/src/main/AndroidManifest.xml:47:19-48
 uses-sdk
 INJECTED from /Users/lim/Desktop/mobile-application/android/app/src/debug/AndroidManifest.xml reason: use-sdk injection requested
 INJECTED from /Users/lim/Desktop/mobile-application/android/app/src/debug/AndroidManifest.xml

@@ -26,7 +26,7 @@ dependencies:
   # Media & picker
   image_picker: ^1.2.0
 
-  # AI (v1beta SDK)
+  # AI (Gemini API)
   google_generative_ai: ^0.4.7
 
   # Location + date formatting
@@ -36,6 +36,7 @@ dependencies:
   http_parser: ^4.1.2
   path: ^1.9.1
 
+  # Notifications
   flutter_local_notifications: ^17.1.2
   timezone: ^0.9.2
 
@@ -46,6 +47,11 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+
   assets:
+    # Existing assets
     - assets/logo.png
     - assets/farm.jpg
+
+    # Crop images for map_page.dart
+    - media/
