@@ -6,7 +6,7 @@
     <!-- Android 13+ runtime permission -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
 
-    <!-- Location (if your app uses it) -->
+    <!-- ✅ Add these for geolocator / GPS -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 
@@ -25,6 +25,7 @@
             android:hardwareAccelerated="true"
             android:windowSoftInputMode="adjustResize">
 
+            <!-- Theme displayed while Flutter UI initializes -->
             <meta-data
                 android:name="io.flutter.embedding.android.NormalTheme"
                 android:resource="@style/NormalTheme" />
@@ -35,12 +36,13 @@
             </intent-filter>
         </activity>
 
+        <!-- Required by Flutter for plugin generation -->
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
     </application>
 
-    <!-- Optional: if you really need to query PROCESS_TEXT -->
+    <!-- Optional: for PROCESS_TEXT intents (as you had) -->
     <queries>
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>

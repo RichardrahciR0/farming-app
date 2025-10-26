@@ -1,2 +1,0 @@
-/Users/shivanshi/Farmapp/android/app/.cxx/Debug/e233v2m4/armeabi-v7a/CMakeFiles/edit_cache.dir
-/Users/shivanshi/Farmapp/android/app/.cxx/Debug/e233v2m4/armeabi-v7a/CMakeFiles/rebuild_cache.dir

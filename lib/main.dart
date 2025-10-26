@@ -1,35 +1,29 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
-import 'screens/home_page.dart';
-import 'screens/map_page.dart';
-import 'screens/task_page.dart';
-import 'screens/add_task.dart';
-import 'screens/settings_page.dart';
-import 'screens/notifications_page.dart';
-import 'screens/cropdata.dart';
-import 'screens/calender_page.dart';
-import 'screens/weather_page.dart';
-import 'screens/mapping.dart';
-import 'screens/login_page.dart';
-import 'screens/signup_page.dart';
+import 'screens/home_page.dart' show HomePage;
+import 'screens/map_page.dart' show MapPage;
+import 'screens/task_page.dart' show TaskPage;
+import 'screens/add_task.dart' show AddTaskPage;
+import 'screens/settings_page.dart' show SettingsPage;
+import 'screens/notifications_page.dart' show NotificationsPage;
+import 'screens/cropdata.dart' show CropDataPage;
+import 'screens/calender_page.dart' show CalendarPage; // <-- If your class is CalenderPage, change this line to: show CalenderPage;
+import 'screens/weather_page.dart' show WeatherPage;
+import 'screens/mapping.dart' show MappingPage;
+import 'screens/login_page.dart' show LoginScreen;
+import 'screens/signup_page.dart' show SignUpScreen;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  // ✅ Declare storage properly before use
   final storage = FlutterSecureStorage();
-
-  // ✅ Check for existing JWT access token
   final token = await storage.read(key: 'access');
   final initialRoute = token != null ? '/' : '/login';
-
   runApp(OrefoxApp(initialRoute: initialRoute));
 }
 
 class OrefoxApp extends StatelessWidget {
   final String initialRoute;
-
   const OrefoxApp({super.key, required this.initialRoute});
 
   @override
@@ -77,7 +71,7 @@ class OrefoxApp extends StatelessWidget {
         '/settings': (ctx) => SettingsPage(),
         '/notifications': (ctx) => NotificationsPage(),
         '/cropdata': (ctx) => CropDataPage(),
-        '/calendar': (ctx) => CalendarPage(),
+        '/calendar': (ctx) => CalendarPage(), // <-- if your class is CalenderPage, change to CalenderPage()
         '/weather': (ctx) => WeatherPage(),
       },
     );

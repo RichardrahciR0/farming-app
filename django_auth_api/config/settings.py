@@ -5,28 +5,37 @@ import os
 import sys
 from dotenv import load_dotenv  # ✅ for .env support
 
+# -----------------------------------------------------------------------------
+# PATHS & ENV
+# -----------------------------------------------------------------------------
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# If repo layout has crop_backend sibling, add to PYTHONPATH
+# Add sibling crop_backend if it exists
 EXTRA_APPS_PATH = BASE_DIR.parent / "crop_backend"
 if EXTRA_APPS_PATH.exists():
     sys.path.append(str(EXTRA_APPS_PATH))
 
-# ✅ Load environment variables from .env (place this in django_auth_api/.env)
+# ✅ Load environment variables from .env
 load_dotenv(BASE_DIR / ".env")
 
+# -----------------------------------------------------------------------------
+# CORE SETTINGS
+# -----------------------------------------------------------------------------
 SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "your-secret-key-here")
-DEBUG = True
+DEBUG = os.environ.get("DEBUG", "0") == "1"
 
 ALLOWED_HOSTS = [
     "127.0.0.1",
     "localhost",
-    "10.0.2.2",          # Android emulator loopback
-    "192.168.1.101",     # your Wi-Fi IP
+    "10.0.2.2",          # Android emulator
+    "192.168.1.106",     # Your current Wi-Fi IP
     "10.88.46.63",
     "192.168.1.103",
 ]
 
+# -----------------------------------------------------------------------------
+# APPLICATIONS
+# -----------------------------------------------------------------------------
 INSTALLED_APPS = [
     "corsheaders",
     "django.contrib.admin",
@@ -35,7 +44,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    "django.contrib.gis",  # PostGIS
+    "django.contrib.gis",  # ✅ Enable PostGIS
     "rest_framework",
     "rest_framework_gis",
     "rest_framework_simplejwt.token_blacklist",
@@ -46,6 +55,9 @@ INSTALLED_APPS = [
     "crop_app",
 ]
 
+# -----------------------------------------------------------------------------
+# MIDDLEWARE
+# -----------------------------------------------------------------------------
 MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
@@ -57,12 +69,19 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
+# -----------------------------------------------------------------------------
+# URLS & WSGI
+# -----------------------------------------------------------------------------
 ROOT_URLCONF = "config.urls"
+WSGI_APPLICATION = "config.wsgi.application"
 
+# -----------------------------------------------------------------------------
+# TEMPLATES (Fixes admin.E403 error)
+# -----------------------------------------------------------------------------
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [],
+        "DIRS": [BASE_DIR / "templates"],  # optional, create templates/ if needed
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -75,9 +94,9 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = "config.wsgi.application"
-
-# ✅ Database (PostGIS)
+# -----------------------------------------------------------------------------
+# DATABASE (PostGIS)
+# -----------------------------------------------------------------------------
 DATABASES = {
     "default": {
         "ENGINE": "django.contrib.gis.db.backends.postgis",
@@ -89,34 +108,60 @@ DATABASES = {
     }
 }
 
-AUTH_PASSWORD_VALIDATORS = []
+# -----------------------------------------------------------------------------
+# AUTH & USER MODEL
+# -----------------------------------------------------------------------------
+AUTH_USER_MODEL = "accounts.CustomUser"
 
+AUTH_PASSWORD_VALIDATORS = [
+    {
+        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
+    },
+    {
+        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
+    },
+    {
+        "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",
+    },
+    {
+        "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
+    },
+]
+
+# -----------------------------------------------------------------------------
+# INTERNATIONALIZATION
+# -----------------------------------------------------------------------------
 LANGUAGE_CODE = "en-us"
 TIME_ZONE = "UTC"
 USE_I18N = True
 USE_TZ = True
 
+# -----------------------------------------------------------------------------
+# STATIC & MEDIA
+# -----------------------------------------------------------------------------
 STATIC_URL = "static/"
+MEDIA_URL = "/media/"
+MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-# ✅ Custom user model
-AUTH_USER_MODEL = "accounts.CustomUser"
-
-# ✅ Django REST Framework
+# -----------------------------------------------------------------------------
+# DJANGO REST FRAMEWORK & JWT
+# -----------------------------------------------------------------------------
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework_simplejwt.authentication.JWTAuthentication",
     ),
 }
 
-# ✅ JWT settings
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=30),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
     "AUTH_HEADER_TYPES": ("Bearer",),
 }
 
-# ✅ Djoser settings
+# -----------------------------------------------------------------------------
+# DJOSER CONFIGURATION
+# -----------------------------------------------------------------------------
 DJOSER = {
     "LOGIN_FIELD": "email",
     "USER_CREATE_PASSWORD_RETYPE": True,
@@ -131,12 +176,22 @@ DJOSER = {
     },
 }
 
-# ✅ Media (for crop image uploads)
-MEDIA_URL = "/media/"
-MEDIA_ROOT = os.path.join(BASE_DIR, "media")
-
-# ✅ CORS (dev only)
+# -----------------------------------------------------------------------------
+# CORS
+# -----------------------------------------------------------------------------
 CORS_ALLOW_ALL_ORIGINS = True
 
-# 🌱 External API key (Perenual)
+# -----------------------------------------------------------------------------
+# EXTERNAL API KEYS
+# -----------------------------------------------------------------------------
 PERENUAL_KEY = os.environ.get("PERENUAL_KEY", "")
+
+# -----------------------------------------------------------------------------
+# GEOS & GDAL LIBRARY PATHS (Fix for macOS + PostGIS)
+# -----------------------------------------------------------------------------
+GDAL_LIBRARY_PATH = os.getenv(
+    "GDAL_LIBRARY_PATH", "/opt/homebrew/opt/gdal/lib/libgdal.dylib"
+)
+GEOS_LIBRARY_PATH = os.getenv(
+    "GEOS_LIBRARY_PATH", "/opt/homebrew/opt/geos/lib/libgeos_c.dylib"
+)

@@ -467,6 +467,8 @@ Future<void> _cancelNotificationsForPlot(PlotModel p) async {
     final cur = Map<String, dynamic>.from(m['current'] ?? {});
     final t = (cur['temperature_2m'] as num?)?.toDouble();
     final w = (cur['wind_speed_10m'] as num?)?.toDouble();
+
+    if (!mounted) return; // ⬅️ add
     setState(() {
       _currentTempC = t;
       _weatherText = (t == null || w == null)
@@ -474,6 +476,7 @@ Future<void> _cancelNotificationsForPlot(PlotModel p) async {
           : '${t.toStringAsFixed(1)}°C · wind ${w.toStringAsFixed(1)} m/s';
     });
   } catch (_) {
+    if (!mounted) return; // ⬅️ add
     setState(() => _weatherText = 'Weather unavailable');
   } finally {
     client?.close(force: true);
@@ -572,8 +575,11 @@ Future<void> _cancelNotificationsForPlot(PlotModel p) async {
         );
       }
     } catch (e) {
-      _showSnack('Backend sync failed: $e');
-    }
+  // Quietly log to console in debug, but don’t show a SnackBar
+  // ignore: avoid_print
+  debugPrint('Backend sync failed: $e');
+}
+
   }
 
   Future<void> _deleteFromBackend(PlotModel p) async {
@@ -2290,94 +2296,78 @@ if (_drawing.length >= 2) {
                 ),
               ),
             ),
-          LayoutBuilder(
-            builder: (ctx, constraints) {
-              const w = 56.0;
-              final defaultLeft = 12.0;
-              final defaultTop = 90.0;
-              final left = (_tbLeft < 0) ? defaultLeft : _tbLeft;
-              final top = (_tbTop < 0) ? defaultTop : _tbTop;
-              final estH = 56.0 + 7 * 40.0;
+          Positioned(
+  left: (_tbLeft < 0) ? 12.0 : _tbLeft,
+  top: (_tbTop < 0) ? 90.0 : _tbTop,
+  child: GestureDetector(
+    behavior: HitTestBehavior.opaque,
+    onPanUpdate: (d) {
+      final size = MediaQuery.of(context).size;
+      const w = 56.0;                 // palette width
+      const estH = 56.0 + 7 * 40.0;   // estimated palette height
 
-              return Positioned(
-                left: left,
-                top: top,
-                child: GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onPanUpdate: (d) {
-                    final curL = (_tbLeft < 0) ? defaultLeft : _tbLeft;
-                    final curT = (_tbTop < 0) ? defaultTop : _tbTop;
-                    setState(() {
-                      _tbLeft = (curL + d.delta.dx)
-                          .clamp(0.0, constraints.maxWidth - w);
-                      _tbTop = (curT + d.delta.dy)
-                          .clamp(0.0, constraints.maxHeight - estH);
-                    });
-                  },
-                  onPanEnd: (_) => _saveToolbarPos(),
-                  onDoubleTap: () {
-                    setState(() {
-                      _tbLeft = defaultLeft;
-                      _tbTop = defaultTop;
-                    });
-                    _saveToolbarPos();
-                  },
-                  child: Container(
-                    width: w,
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: const [
-                        BoxShadow(blurRadius: 8, color: Colors.black12)
-                      ],
-                    ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        _toolButton(Icons.open_with, DrawTool.pan),
-                        const SizedBox(height: 6),
-                        _toolButton(Icons.place, DrawTool.point),
-                        const SizedBox(height: 6),
-                        _toolButton(Icons.crop_16_9, DrawTool.rectangle),
-                        const SizedBox(height: 6),
-                        _toolButton(
-                            Icons.check_box_outline_blank, DrawTool.square),
-                        const SizedBox(height: 6),
-                        _toolButton(Icons.circle_outlined, DrawTool.circle),
-                        const SizedBox(height: 6),
-                        _toolButton(Icons.change_history, DrawTool.triangle),
-                        const Divider(height: 18, indent: 10, endIndent: 10),
-                        IconButton(
-                          tooltip: 'Finish shape',
-                          onPressed: _drawing.isNotEmpty ? _finishDrawing : null,
-                          icon: const Icon(Icons.check),
-                          color:
-                              _drawing.isNotEmpty ? Colors.green[700] : Colors.black26,
-                        ),
-                        IconButton(
-                          tooltip: _resizeMode || _selected?.locked == true
-                              ? 'Exit Resize Mode'
-                              : 'Resize Mode (pinch)',
-                          icon: Icon(_resizeMode
-                              ? Icons.back_hand
-                              : Icons.back_hand_outlined),
-                          color: _resizeMode ? Colors.green[700] : Colors.black87,
-                          onPressed: () {
-                            if (_selected?.locked == true) {
-                              _showSnack('Plot is locked');
-                              return;
-                            }
-                            setState(() => _resizeMode = !_resizeMode);
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              );
+      final curL = (_tbLeft < 0) ? 12.0 : _tbLeft;
+      final curT = (_tbTop < 0) ? 90.0 : _tbTop;
+
+      setState(() {
+        _tbLeft = (curL + d.delta.dx).clamp(0.0, size.width - w);
+        _tbTop  = (curT + d.delta.dy).clamp(0.0, size.height - estH);
+      });
+    },
+    onPanEnd: (_) => _saveToolbarPos(),
+    onDoubleTap: () {
+      setState(() { _tbLeft = 12.0; _tbTop = 90.0; });
+      _saveToolbarPos();
+    },
+    child: Container(
+      width: 56,
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: const [BoxShadow(blurRadius: 8, color: Colors.black12)],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _toolButton(Icons.open_with, DrawTool.pan),
+          const SizedBox(height: 6),
+          _toolButton(Icons.place, DrawTool.point),
+          const SizedBox(height: 6),
+          _toolButton(Icons.crop_16_9, DrawTool.rectangle),
+          const SizedBox(height: 6),
+          _toolButton(Icons.check_box_outline_blank, DrawTool.square),
+          const SizedBox(height: 6),
+          _toolButton(Icons.circle_outlined, DrawTool.circle),
+          const SizedBox(height: 6),
+          _toolButton(Icons.change_history, DrawTool.triangle),
+          const Divider(height: 18, indent: 10, endIndent: 10),
+          IconButton(
+            tooltip: 'Finish shape',
+            onPressed: _drawing.isNotEmpty ? _finishDrawing : null,
+            icon: const Icon(Icons.check),
+            color: _drawing.isNotEmpty ? Colors.green : Colors.black26,
+          ),
+          IconButton(
+            tooltip: _resizeMode || _selected?.locked == true
+                ? 'Exit Resize Mode'
+                : 'Resize Mode (pinch)',
+            icon: Icon(_resizeMode ? Icons.back_hand : Icons.back_hand_outlined),
+            color: _resizeMode ? Colors.green[700] : Colors.black87,
+            onPressed: () {
+              if (_selected?.locked == true) {
+                _showSnack('Plot is locked');
+                return;
+              }
+              setState(() => _resizeMode = !_resizeMode);
             },
           ),
+        ],
+      ),
+    ),
+  ),
+),
+
           DraggableScrollableSheet(
             initialChildSize: 0.20,
             minChildSize: 0.12,
