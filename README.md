@@ -1,153 +1,140 @@
-Farming_QUT
-Monorepo for the Farming_QUT project:
-Flutter mobile app (Android & iOS)
-Django backend API (optional local backend for authentication and data access)
-This repository excludes all generated build artifacts (Gradle/NDK .cxx, iOS DerivedData, etc.).
-These files are recreated automatically when you build or run the app.
-Table of Contents
-Tech Stack
-Repo Layout
-Prerequisites
-Quick Start
-Clone the Repository
-Mobile App (Flutter)
-Auth API (Django)
-Configuration
-Flutter Configuration
-Django Configuration
-Gemini API Key Setup
-API Keys Overview
-Build & Run
-Troubleshooting
-Branching & PRs
-Contributing
-License
-Tech Stack
-Flutter (Dart) — cross-platform UI
-Android Studio — IDE for Android development and Gradle integration
-Xcode — iOS builds (macOS only)
-Django (Python) — backend API
-PostgreSQL / PostGIS — optional for spatial data
-Google Gemini API — AI features (crop suggestions, weather insights)
-Git + GitHub — version control & collaboration
-Repo Layout
+🌾 Farm Planting App
+Orefox AI Limited | QUT IFB399 Capstone Project (2025)
+This project provides farmers, gardeners, and orchard owners with a digital platform to plan, manage, and optimise agricultural layouts.
+It includes a Django REST backend and a Flutter mobile app frontend, enabling:
+🗺️ Map-based layout planning (plots, markers, polygons)
+🌱 Crop tagging, growth tracking, and yield monitoring
+☁️ Weather integration with AI planting insights (Gemini API)
+🧾 Task management and scheduling
+👤 User authentication (JWT + Djoser)
+🧠 Smart recommendations via Gemini API
+🧩 Project Structure
 Farming_QUT/
-├─ android/               # Android project for Flutter
-├─ ios/                   # iOS project for Flutter
-├─ lib/                   # Flutter app Dart source code
-├─ assets/                # Images, fonts, and icons
-├─ django_auth_api/       # Django backend API (local/dev)
-├─ test/                  # Flutter tests
-├─ pubspec.yaml           # Flutter dependencies
-└─ README.md
-Ignored build directories:
-.dart_tool/, build/, .gradle/, Pods/, DerivedData/, and android/app/.cxx/ (NDK/CMake artifacts)
-Prerequisites
-To set up this project on a new machine, you must have the following:
-Requirement	Description
-Android Studio	Required. Install from https://developer.android.com/studio. Includes Android SDK, NDK, AVD (emulator), and Gradle.
-Flutter SDK	Install the version specified in .flutter-version or run flutter --version to confirm compatibility.
-Xcode (macOS only)	For iOS builds and testing.
-Python 3.10+	For the Django backend.
-Git	For version control and cloning this repository.
-CocoaPods	Required for iOS dependencies (sudo gem install cocoapods).
-We recommend using Android Studio as your main development environment.
-It handles Gradle builds, emulators, and Flutter integration out of the box.
-Make sure it is installed and configured before running flutter run.
-Quick Start
-Clone the Repository
-To clone only the mobile branch:
-git clone --branch mobile --single-branch https://github.com/OreFox/Farming_QUT.git
-cd Farming_QUT
-If you already have an old copy, remove it first:
-rm -rf ~/Farming_QUT
-Mobile App (Flutter)
-Make sure Android Studio is installed before running these commands:
-flutter clean
-flutter pub get
-flutter run -d android
-flutter build apk --release
-If using an emulator, open Android Studio → Device Manager → Start a virtual device (Pixel or similar).
-iOS (macOS only)
-cd ios
-pod install
-cd ..
-flutter run -d ios
-Auth API (Django)
-cd django_auth_api
-python -m venv .venv
-source .venv/bin/activate   # Windows: .venv\Scripts\activate
+│
+├── django_auth_api/        # Django REST backend
+│   ├── manage.py
+│   ├── config/             # Settings, URLs, WSGI/ASGI
+│   ├── accounts/           # User authentication
+│   ├── crops/              # Crop data management
+│   ├── plots/              # Farm layout data
+│   ├── crop_app/           # AI + weather integrations
+│   └── ...
+│
+├── lib/                    # Flutter frontend (mobile app)
+│   ├── main.dart
+│   ├── pages/
+│   ├── services/
+│   └── widgets/
+│
+└── README.md               # You are here
+⚙️ Backend Setup (Django)
+1️⃣ Clone the repository
+cd ~/Desktop
+git clone --branch mobile https://github.com/OreFox/Farming_QUT.git
+cd Farming_QUT/django_auth_api
+2️⃣ Create and activate a virtual environment
+python3 -m venv .venv
+source .venv/bin/activate
+3️⃣ Install dependencies
+If a requirements.txt file exists:
 pip install -r requirements.txt
-
-python manage.py migrate
-python manage.py runserver
-Access the backend at: http://127.0.0.1:8000
-Configuration
-Flutter Configuration
-You can inject configuration values when running the app:
-flutter run --dart-define=API_BASE_URL=http://127.0.0.1:8000
-Important — Update Your Local IP:
-You must set your computer’s local IP address in the following files:
-lib/services/api_service.dart
-const String baseUrl = "http://192.168.1.101:8000";  // Replace with your own IP
-If using the Android Emulator, use http://10.0.2.2:8000.
-If using a real device, replace with your local IP (e.g., 192.168.x.x).
-Both your phone/emulator and computer must be on the same Wi-Fi network.
-Django Configuration
-Your backend configuration must also reference your IP address.
-Open django_auth_api/config/settings.py
-Update the ALLOWED_HOSTS line:
-ALLOWED_HOSTS = ["127.0.0.1", "localhost", "192.168.1.101"]
-Restart your Django server after editing.
-Example .env file:
-DJANGO_SECRET_KEY=replace_me
-DJANGO_DEBUG=True
-ALLOWED_HOSTS=127.0.0.1,localhost,192.168.1.101
+Otherwise, install manually:
+pip install Django djangorestframework djangorestframework-gis django-cors-headers django-filter djoser psycopg2-binary python-dotenv Pillow
+4️⃣ Configure environment variables
+Create a .env file in django_auth_api/ and add:
+DJANGO_SECRET_KEY=dev-secret-key
+DEBUG=True
 DATABASE_URL=sqlite:///db.sqlite3
-Gemini API Key Setup
-The app uses the Google Gemini API for AI-driven planting suggestions, crop management, and weather recommendations.
-Visit https://makersuite.google.com/app/apikey and sign in with your Google account.
-Generate a new Gemini API key.
-Add it when running the Flutter app:
-flutter run --dart-define=GEMINI_API_KEY=your_api_key_here
-You can combine it with your backend define:
-flutter run --dart-define=API_BASE_URL=http://192.168.1.101:8000 --dart-define=GEMINI_API_KEY=your_api_key_here
-(Optional) You can also store the key securely in a .env file or flutter_secure_storage if you prefer not to expose it in command line arguments.
-Security Notes:
-Never commit your API key to GitHub.
-Do not hard-code your API key directly in Dart files.
-If your key is leaked, revoke it immediately via Google AI Studio → API Keys.
-API Keys Overview
-Feature	Uses External API?	API Key Needed?	Shared or Personal?
-Map (flutter_map + OpenStreetMap)	No (OSM tiles)	❌ None required	Shared automatically
-Calendar	No (Local Flutter widget)	❌ None required	Shared automatically
-Gemini AI	Yes (Google Gemini API)	✅ Required	Each developer must get their own
-Summary:
-The map and calendar work out-of-the-box — no key setup required.
-Only the Gemini AI requires a personal API key for AI and weather features.
-Build & Run
-Android
-flutter run -d android         # debug
-flutter build apk --release    # release
-iOS
-cd ios && pod install && cd ..
-flutter build ios --release
-Troubleshooting
-Issue	Solution
-Gradle build failed	Run flutter clean && flutter pub get or open in Android Studio and let it sync Gradle.
-CocoaPods error	Run sudo gem install cocoapods && cd ios && pod install.
-No emulator detected	Open Android Studio → Device Manager → Start an emulator.
-Django missing deps	Ensure django_auth_api/requirements.txt exists and run pip install -r requirements.txt.
-AI features not working	Verify your GEMINI_API_KEY is valid and properly defined when running the Flutter app.
-IP connection failed	Ensure your local IP is set correctly in both api_service.dart and settings.py, and both devices are on the same Wi-Fi network.
-Branching & PRs
-Active branch: mobile
-Create feature branches off mobile.
-Use Conventional Commit style:
+ALLOWED_HOSTS=127.0.0.1,localhost,10.0.2.2
+(Optional) For PostgreSQL / PostGIS:
+DATABASE_URL=postgresql://username:password@localhost:5432/planting_app
+5️⃣ Apply migrations
+python manage.py migrate
+6️⃣ Create a superuser (admin)
+python manage.py createsuperuser
+Follow prompts and enter:
+Email: admin@example.com
+Password: ********
+7️⃣ Run the backend server
+python manage.py runserver 0.0.0.0:8000
+Then open:
+👉 http://127.0.0.1:8000/
+You should see:
+Starting development server at http://0.0.0.0:8000/
+System check identified no issues (0 silenced).
+
+
+📱 Frontend Setup (Flutter)
+1️⃣ Go to the project root
+cd ~/Desktop/Farming_QUT
+2️⃣ Get dependencies
+flutter pub get
+3️⃣ Add your Gemini API key (for AI features)
+You can provide the Gemini API key at runtime using:
+flutter run --dart-define=GEMINI_API_KEY=YOUR_API_KEY_HERE
+🔒 Replace YOUR_API_KEY_HERE with your own Gemini API key from Google AI Studio.
+4️⃣ Run the app
+🧩 Using Android Studio
+Open the project folder (Farming_QUT) in Android Studio.
+In the top menu, go to Run ▸ Edit Configurations.
+Under Additional run args, add:
+--dart-define=GEMINI_API_KEY=YOUR_API_KEY_HERE
+Select an emulator or physical device.
+Click Run ▶️.
+🧩 Using VS Code
+Open the project folder.
+Press Ctrl + Shift + P → “Flutter: Select Device” → choose your emulator.
+Run in terminal:
+flutter run --dart-define=GEMINI_API_KEY=YOUR_API_KEY_HERE
+5️⃣ Connecting to the Backend
+In your Flutter code (e.g., lib/services/api_service.dart), ensure the base URL matches your environment:
+Environment	Base URL
+Android Emulator	http://10.0.2.2:8000/api/
+Chrome / iOS / macOS	http://127.0.0.1:8000/api/
 Example:
-feat: add weather AI integration
-fix: map marker sync bug
-Contributing
-Clone the repo and set up prerequisites.
-Use Android Studio for all builds and testing.
-Keep build artifacts out of Git (flutter clean before committing).
+const String baseUrl = "http://10.0.2.2:8000/api/";
+🧠 Tech Stack
+Component	Technology
+Backend	Django 5.2.7, Django REST Framework
+Frontend	Flutter 3.22+
+Database	SQLite / PostgreSQL with PostGIS
+Authentication	Djoser + JWT
+AI Model	Google Gemini API
+Mapping	flutter_map, latlong2, flutter_map_dragmarker
+🧾 Common Commands
+Task	Command
+Activate virtual environment	source .venv/bin/activate
+Run backend	python manage.py runserver 0.0.0.0:8000
+Run frontend	flutter run --dart-define=GEMINI_API_KEY=YOUR_API_KEY_HERE
+Stop server	Ctrl + C
+Apply migrations	python manage.py makemigrations && python manage.py migrate
+Create admin	python manage.py createsuperuser
+🧑‍🤝‍🧑 Team Credits
+Orefox AI Limited x QUT IFB399 Capstone Team (2025)
+Richard Lim — Backend Integration & Mobile Development
+Shivanshi — Frontend & UI/UX Design
+Gauri — Risk Management & Documentation
+Anshika — Research & Client Liaison
+🏁 Quick Start Summary
+# Clone repository
+git clone --branch mobile https://github.com/OreFox/Farming_QUT.git
+cd Farming_QUT/django_auth_api
+
+# Backend setup
+python3 -m venv .venv
+source .venv/bin/activate
+pip install Django djangorestframework djangorestframework-gis django-cors-headers django-filter djoser psycopg2-binary python-dotenv Pillow
+python manage.py migrate
+python manage.py runserver 0.0.0.0:8000
+Then in a new terminal:
+cd ~/Desktop/Farming_QUT
+flutter pub get
+flutter run --dart-define=GEMINI_API_KEY=YOUR_API_KEY_HERE
+✅ The backend will run on port 8000, and the Flutter app will connect automatically.
+🚀 Deployment Notes
+For production deployment:
+Set DEBUG=False in .env
+Run python manage.py collectstatic
+Use Gunicorn + Nginx or Django ASGI
+Store API keys securely (never in public code)
+Use PostgreSQL/PostGIS for data persistence
