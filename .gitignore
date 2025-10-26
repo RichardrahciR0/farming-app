@@ -1,36 +1,22 @@
-# macOS
-.DS_Store
-
-# Python / Django
-venv/
-.venv/
-__pycache__/
-*.py[cod]
-*.pyo
-*.so
-*.egg-info/
-db.sqlite3
-.env
-.env.* 
-media/
-staticfiles/
-
-# Flutter / Dart
 .dart_tool/
-.packages
-.pub-cache/
-.flutter-plugins
+.flutter-plugins*
 .flutter-plugins-dependencies
-.buildlog/
-build/
-coverage/
-linux/flutter/ephemeral/
-macos/Flutter/ephemeral/
-windows/flutter/ephemeral/
-ios/Flutter/ephemeral/
-android/.gradle/
-android/app/release/
-
-# IDE
+.packages
+.melos_tool/
 .idea/
-.vscode/
+android/.gradle/
+build/
+**/*.apk
+ios/Flutter/Generated.xcconfig
+ios/Flutter/flutter_export_environment.sh
+macos/Flutter/ephemeral/
+
+
+**/__pycache__/
+**/*.py[cod]
+.venv/
+venv/
+.env
+*.sqlite3
+.DS_Store
+*.iml
