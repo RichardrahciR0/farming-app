@@ -20,3 +20,4 @@ venv/
 *.sqlite3
 .DS_Store
 *.iml
+android/app/.cxx/
